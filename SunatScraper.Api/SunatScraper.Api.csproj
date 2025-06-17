@@ -3,9 +3,11 @@
     <TargetFramework>net9.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SunatScraper.Core\SunatScraper.Core.csproj" />
     <PackageReference Include="Serilog.AspNetCore" Version="7.*" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>
