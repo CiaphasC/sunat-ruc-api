@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
 using Grpc.Core;
 using SunatScraper.Core.Services;
+using SunatScraper.Grpc;
 public class RucGrpcService : Sunat.SunatBase
 {
     private readonly SunatClient _svc;
@@ -11,3 +13,4 @@ public class RucGrpcService : Sunat.SunatBase
         Condicion=i.Condicion??"",Direccion=i.Direccion??""
     };
 }
+
