@@ -1,0 +1,13 @@
+syntax = "proto3";
+option csharp_namespace = "SunatScraper.Grpc";
+service Sunat {
+  rpc GetByRuc (RucRequest) returns (RucReply);
+}
+message RucRequest{string ruc=1;}
+message RucReply{
+  string ruc=1;
+  string razonSocial=2;
+  string estado=3;
+  string condicion=4;
+  string direccion=5;
+}
