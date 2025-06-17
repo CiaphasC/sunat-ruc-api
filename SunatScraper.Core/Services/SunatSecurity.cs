@@ -10,7 +10,15 @@ public class SunatSecurity
         var sb=new System.Text.StringBuilder(len);
         using var rng=RandomNumberGenerator.Create();
         Span<byte> b=stackalloc byte[8];
-        while(sb.Length<len){rng.GetBytes(b);sb.Append(Convert.ToString(BitConverter.ToUInt64(b),24));}
+        const string Alphabet="0123456789ABCDEFGHIJKLMN"; // 24 chars
+        while(sb.Length<len){
+            rng.GetBytes(b);
+            ulong val=BitConverter.ToUInt64(b);
+            while(val>0&&sb.Length<len){
+                sb.Append(Alphabet[(int)(val%24)]);
+                val/=24;
+            }
+        }
         return sb.ToString(0,len);
     }
     public async Task<string> SolveCaptchaAsync(){
@@ -18,7 +26,7 @@ public class SunatSecurity
         var png=await _http.GetByteArrayAsync($"/cl-ti-itmrconsruc/captcha?accion=image&nmagic={rnd}");
 #if USE_TESSERACT
         try{
-            using var eng=new TesseractEngine("/usr/share/tessdata","eng",EngineMode.Default);
+            using var eng=new TesseractEngine("/usr/share/tesseract-ocr/5/tessdata","eng",EngineMode.Default);
             using var pix=Pix.LoadFromMemory(png);
             using var page=eng.Process(pix);
             var txt=page.GetText().Trim().Replace(" ","").ToUpper();
