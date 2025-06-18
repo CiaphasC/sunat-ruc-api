@@ -101,23 +101,26 @@ graph TD;
 ```
 
 ### Principios arquitectónicos
-Se adopta una **arquitectura en capas**. El núcleo de negocio se mantiene aislado en `SunatScraper.Core`, mientras que las capas de presentación consumen dicha librería a través de *inyección de dependencias*. Esto permite cambiar el mecanismo de exposición (REST o gRPC) sin tocar la lógica central y facilita las pruebas unitarias.
+> 🏗️ **Arquitectura en capas**  
+> `SunatScraper.Core` concentra la lógica de negocio y se consume mediante
+> *inyección de dependencias*. De esta manera la API puede exponerse por REST o
+> gRPC sin tocar el núcleo y se facilitan las pruebas unitarias.
 
-Cada capa se comunica mediante interfaces bien definidas, lo que posibilita
-reemplazar componentes (por ejemplo, el sistema de cache o el cliente HTTP)
-según las necesidades del entorno. De esta forma, la solución puede desplegarse
-como un microservicio independiente o integrarse en una aplicación mayor.
+> 🔌 **Componentes intercambiables**  
+> Cada módulo se comunica a través de interfaces, permitiendo reemplazar el
+> sistema de cache o el cliente HTTP según el entorno. Así es posible desplegar
+> la solución como microservicio o integrarla en una aplicación mayor.
 
 #### Flujo de datos
-1. El cliente envía una petición REST o gRPC.
-2. La capa de API valida los parámetros y delega la consulta al `SunatScraper.Core`.
-3. El servicio central se comunica con el portal de SUNAT y almacena temporalmente el resultado en la cache.
-4. La respuesta se devuelve al cliente en el formato solicitado.
+1. 📨 El cliente envía una petición REST o gRPC.
+2. 🛂 La API valida los parámetros y delega la consulta a `SunatScraper.Core`.
+3. 🌐 El servicio central consulta el portal de SUNAT y guarda temporalmente la respuesta en la cache.
+4. 📦 La API devuelve el resultado al cliente.
 
 #### Patrones de diseño
-- **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y las opciones de caché.
-- **Dependency Injection** para registrar servicios y mantener bajo acoplamiento.
-- **Caching** en memoria o Redis para optimizar las consultas repetitivas.
+- 🏭 **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y la caché.
+- 🧩 **Dependency Injection** para registrar servicios y mantener bajo acoplamiento.
+- ⚡ **Caching** en memoria o Redis para optimizar las consultas repetitivas.
 
 ### ¿Por qué C# .NET?
 C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime
