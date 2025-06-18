@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.Json;
+using System.Text.Json.Serialization;
 using SunatScraper.Core.Services;
 using Serilog;
 
 var b=WebApplication.CreateBuilder(args);
 b.Host.UseSerilog((ctx,lc)=>lc.WriteTo.Console());
 b.Services.AddSingleton(_=>SunatClient.Create(b.Configuration["Redis"]));
+b.Services.ConfigureHttpJsonOptions(o=>
+    o.SerializerOptions.DefaultIgnoreCondition=JsonIgnoreCondition.WhenWritingNull);
 var app=b.Build();
 
 app.MapGet("/",()=> "SUNAT RUC API ok");
