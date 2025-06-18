@@ -7,6 +7,7 @@
     <DefineConstants>USE_TESSERACT</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../SunatScraper.Domain/SunatScraper.Domain.csproj" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.*" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="7.*" />
     <PackageReference Include="Tesseract" Version="4.*" />

@@ -1,4 +1,4 @@
-namespace SunatScraper.Core.Validation;
+namespace SunatScraper.Domain.Validation;
 
 /// <summary>
 /// Helper methods to validate incoming parameters.

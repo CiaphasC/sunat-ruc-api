@@ -1,24 +1,13 @@
-namespace SunatScraper.Core.Services;
+namespace SunatScraper.Infrastructure.Services;
 
 using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
-using SunatScraper.Core.Models;
-using SunatScraper.Core.Validation;
+using SunatScraper.Domain.Models;
+using SunatScraper.Domain.Validation;
+using SunatScraper.Domain;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-
-/// <summary>
-/// Abstraction for consult operations against the SUNAT website.
-/// </summary>
-public interface ISunatClient
-{
-    Task<RucInfo> ByRucAsync(string ruc);
-    Task<RucInfo> ByDocumentoAsync(string tipo, string numero);
-    Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string tipo, string numero);
-    Task<IReadOnlyList<SearchResultItem>> SearchRazonAsync(string query);
-    Task<RucInfo> ByRazonAsync(string query);
-}
 
 /// <summary>
 /// HTTP client implementation for <see cref="ISunatClient"/>.

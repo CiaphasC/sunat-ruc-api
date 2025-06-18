@@ -1,4 +1,4 @@
-namespace SunatScraper.Core.Models;
+namespace SunatScraper.Domain.Models;
 using System.Text.Json;
 public sealed record SearchResultItem(
     string? Ruc,

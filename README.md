@@ -86,7 +86,8 @@ grpcurl -d '{"ruc":"20100113774"}' -plaintext localhost:5000 Sunat/GetByRuc
 
 ## 📄 Arquitectura
 El proyecto se compone de tres módulos bien definidos:
-- **SunatScraper.Core** – Librería de dominio. Gestiona la lógica de scraping, la validación de entradas, la resolución de captchas y concentra el acceso a la página de SUNAT.
+- **SunatScraper.Domain** – Librería de dominio. Gestiona la lógica de scraping, la validación de entradas, la resolución de captchas y concentra el acceso a la página de SUNAT.
+- **SunatScraper.Infrastructure** – Implementación del cliente HTTP y la caché.
 - **SunatScraper.Api** – Capa de presentación HTTP basada en Minimal API. Expone los endpoints REST y configura las dependencias necesarias.
 - **SunatScraper.Grpc** – Servicio gRPC opcional pensado para escenarios de alto rendimiento o integración entre microservicios.
 
@@ -95,14 +96,14 @@ El proyecto se compone de tres módulos bien definidos:
 ```mermaid
 graph TD;
     C[Cliente 🌐] --> A[API REST 🚀];
-    A --> B[SunatScraper.Core 🧐];
+    A --> B[SunatScraper.Domain 🧐];
     A --> D[Cache ⚡];
     B --> E[SUNAT 🇵🇪];
 ```
 
 ### Principios arquitectónicos
 > 🏗️ **Arquitectura en capas**  
-> `SunatScraper.Core` concentra la lógica de negocio y se consume mediante
+> `SunatScraper.Domain` concentra la lógica de negocio y se consume mediante
 > *inyección de dependencias*. De esta manera la API puede exponerse por REST o
 > gRPC sin tocar el núcleo y se facilitan las pruebas unitarias.
 
@@ -113,7 +114,7 @@ graph TD;
 
 #### Flujo de datos
 1. 📨 El cliente envía una petición REST o gRPC.
-2. 🛂 La API valida los parámetros y delega la consulta a `SunatScraper.Core`.
+2. 🛂 La API valida los parámetros y delega la consulta a `SunatScraper.Domain`.
 3. 🌐 El servicio central consulta el portal de SUNAT y guarda temporalmente la respuesta en la cache.
 4. 📦 La API devuelve el resultado al cliente.
 
@@ -154,15 +155,16 @@ solución de consulta de RUC que expone esta API.
 ## 🗂 Estructura del proyecto
 ```text
 .
-├── README.md
 ├── SunatScraper.Api
 │   ├── Program.cs
 │   └── SunatScraper.Api.csproj
-├── SunatScraper.Core
+├── SunatScraper.Domain
 │   ├── Models
+│   ├── Validation
+│   └── SunatScraper.Domain.csproj
+├── SunatScraper.Infrastructure
 │   ├── Services
-│   ├── SunatScraper.Core.csproj
-│   └── Validation
+│   └── SunatScraper.Infrastructure.csproj
 ├── SunatScraper.Grpc
 │   ├── Services
 │   ├── SunatScraper.Grpc.csproj
@@ -173,12 +175,3 @@ solución de consulta de RUC que expone esta API.
 El portal de SUNAT puede cambiar o tener restricciones de acceso. Este código se comparte con fines educativos y debe usarse respetando los términos de SUNAT.
 
 ## 🔘 Solución a error "Captcha request failed: 401 Unauthorized"
-Si al realizar una consulta la API muestra `Captcha request failed: 401 Unauthorized`, revisa lo siguiente:
-
-1. Usa la última versión del proyecto. La clase `SunatSecurity` simula un navegador real estableciendo `User-Agent`, `Referer`, `Accept` y `Accept-Language`. También incluye el valor aleatorio `nmagic`/`numRnd` que SUNAT valida para permitir la descarga.
-2. Previamente se debe cargar la página `FrameCriterioBusquedaWeb.jsp` para obtener las cookies de sesión. El método `SunatClient.SendAsync` ya realiza esta petición antes de solicitar el captcha.
-3. Verifica que tu conexión permita acceder a `e-consultaruc.sunat.gob.pe`; un cortafuego o proxy podría bloquear la descarga del captcha o descartar las cookies.
-4. Asegúrate de tener instalado Tesseract OCR para que el captcha se resuelva automáticamente. Si Tesseract no está disponible se solicitará ingresarlo manualmente.
-5. A partir de la versión actual la clase `SunatSecurity` detecta los códigos `401 Unauthorized` y `404 Not Found` devolviendo un captcha vacío cuando SUNAT lo omite, evitando que se genere una excepción.
-
-Tras comprobar estos puntos la API debería responder correctamente a las consultas `/ruc/{ruc}`.

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using Grpc.Core;
-using SunatScraper.Core.Services;
+using SunatScraper.Domain;
 using SunatScraper.Grpc;
 
 public class RucGrpcService : Sunat.SunatBase
@@ -12,7 +12,7 @@ public class RucGrpcService : Sunat.SunatBase
     public override async Task<RucReply> GetByRuc(RucRequest request, ServerCallContext _) =>
         Map(await _client.ByRucAsync(request.Ruc));
 
-    private static RucReply Map(SunatScraper.Core.Models.RucInfo info) => new()
+    private static RucReply Map(SunatScraper.Domain.Models.RucInfo info) => new()
     {
         Ruc = info.Ruc ?? string.Empty,
         RazonSocial = info.RazonSocial ?? string.Empty,

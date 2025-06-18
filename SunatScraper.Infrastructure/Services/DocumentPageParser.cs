@@ -1,6 +1,6 @@
-namespace SunatScraper.Core.Services;
+namespace SunatScraper.Infrastructure.Services;
 using HtmlAgilityPack;
-using SunatScraper.Core.Models;
+using SunatScraper.Domain.Models;
 using System.Net;
 using System.Linq;
 using System;

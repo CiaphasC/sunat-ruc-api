@@ -7,11 +7,14 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SunatScraper.Core\SunatScraper.Core.csproj" />
+    <ProjectReference Include="..\SunatScraper.Domain\SunatScraper.Domain.csproj" />
+    <ProjectReference Include="..\SunatScraper.Infrastructure\SunatScraper.Infrastructure.csproj" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.*" />
     <PackageReference Include="Grpc.Tools" Version="2.*" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SunatScraper.Domain\SunatScraper.Domain.csproj" />
     <Protobuf Include="sunat.proto" GrpcServices="Server"/>
   </ItemGroup>
 </Project>
+
