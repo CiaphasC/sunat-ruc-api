@@ -4,13 +4,25 @@ using SunatScraper.Core.Models;
 using System.Net;
 using System.Linq;
 using System;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 internal static class RucPageParser
 {
+    static string Normalize(string s){
+        var f=s.Normalize(NormalizationForm.FormD);
+        Span<char> buf=stackalloc char[f.Length];
+        int idx=0;
+        foreach(var c in f)
+            if(CharUnicodeInfo.GetUnicodeCategory(c)!=UnicodeCategory.NonSpacingMark)
+                buf[idx++]=char.ToLowerInvariant(c);
+        return new string(buf[..idx]);
+    }
     static string? GetValue(IDictionary<string,string> map,string label){
+        var normLabel=Normalize(label);
         foreach(var (k,v) in map)
-            if(k.Contains(label,StringComparison.OrdinalIgnoreCase))
+            if(Normalize(k).Contains(normLabel))
                 return v;
         return null;
     }

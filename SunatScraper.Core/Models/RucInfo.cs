@@ -3,9 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 public sealed record RucInfo(
     string? Ruc,
-    string? RazonSocial,
+    [property: JsonPropertyName("razonsocial")] string? RazonSocial,
     string? Estado,
-    string? Condicion,
+    [property: JsonPropertyName("condicion")] string? Condicion,
     string? Direccion,
     string? Ubicacion = null,
     [property: JsonPropertyName("documento")] string? Documento = null,
