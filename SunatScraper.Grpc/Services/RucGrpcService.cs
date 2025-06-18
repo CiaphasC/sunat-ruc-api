@@ -1,3 +1,4 @@
+// Servicio gRPC que expone las consultas de RUC.
 using System.Threading.Tasks;
 using Grpc.Core;
 using SunatScraper.Domain;

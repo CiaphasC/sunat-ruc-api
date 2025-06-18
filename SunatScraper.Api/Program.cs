@@ -1,3 +1,5 @@
+// Punto de entrada de la aplicación API.
+// Configura los servicios y define los endpoints HTTP.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Json;
 using System.Text.Json.Serialization;

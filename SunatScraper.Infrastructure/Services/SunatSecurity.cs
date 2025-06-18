@@ -1,4 +1,5 @@
 #define USE_TESSERACT
+// Encapsula la lógica de seguridad y resolución de captcha utilizada por SUNAT.
 namespace SunatScraper.Infrastructure.Services;
 
 using System.Net;
@@ -35,6 +36,7 @@ public class SunatSecurity
         return sb.ToString(0, length);
     }
 
+    // Obtiene y resuelve el captcha; intenta Tesseract antes de recurrir a la entrada manual.
     public async Task<string> SolveCaptchaAsync()
     {
         int rnd = Random.Shared.Next(1, 9999);

@@ -1,3 +1,4 @@
+// Contrato de operaciones para consultar información en la SUNAT.
 namespace SunatScraper.Domain;
 using SunatScraper.Domain.Models;
 

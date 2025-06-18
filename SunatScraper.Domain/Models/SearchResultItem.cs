@@ -1,3 +1,4 @@
+// Representa un elemento en los resultados de búsqueda de la SUNAT.
 namespace SunatScraper.Domain.Models;
 using System.Text.Json;
 public sealed record SearchResultItem(
