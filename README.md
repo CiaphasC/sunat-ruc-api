@@ -30,7 +30,7 @@ La API quedará disponible en `http://localhost:5000/`.
 - `GET /doc/{tipo}/{numero}` – Búsqueda por tipo y número de documento.
 - `GET /doc/{tipo}/{numero}/lista` – Devuelve la "Relación de contribuyentes" para el documento indicado.
 - `GET /rs/lista?q={razon social}` – Lista de resultados por razón social.
-- `GET /rs?q={razon social}` – Búsqueda por nombre o razón social.
+- `GET /rs?q={razon social}` – Búsqueda por nombre o razón social. El resultado incluye `ubicacion` cuando está disponible.
 
 ## 💻 Ejemplos de uso
 ### Consulta por RUC
