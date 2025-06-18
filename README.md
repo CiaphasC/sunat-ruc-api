@@ -23,6 +23,7 @@ La API quedará disponible en `http://localhost:5000/`.
 - `GET /` – Comprobación de funcionamiento.
 - `GET /ruc/{ruc}` – Consulta por número de RUC.
 - `GET /doc/{tipo}/{numero}` – Búsqueda por tipo y número de documento.
+- `GET /doc/{tipo}/{numero}/lista` – Devuelve la "Relación de contribuyentes" para el documento indicado.
 - `GET /rs?q={razon social}` – Búsqueda por nombre o razón social.
 
 ## 💻 Ejemplos de uso
@@ -34,6 +35,10 @@ curl http://localhost:5000/ruc/20100113774
 ### Búsqueda por documento (DNI)
 ```bash
 curl http://localhost:5000/doc/1/73870570
+```
+### Obtener lista de resultados para un documento
+```bash
+curl http://localhost:5000/doc/1/73870570/lista
 ```
 
 ### Búsqueda por razón social

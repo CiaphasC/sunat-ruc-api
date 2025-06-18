@@ -47,6 +47,31 @@ public static class RucParser
             razon,
             GetValue(map,"Estado"),
             GetValue(map,"Condición"),
-            GetValue(map,"Dirección") ?? GetValue(map,"Domicilio"));
+            GetValue(map,"Dirección") ?? GetValue(map,"Domicilio"),
+            GetValue(map,"Ubicación"));
+    }
+
+    public static IEnumerable<SearchResultItem> ParseList(string html)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+        foreach(var a in doc.DocumentNode.SelectNodes("//a[contains(@class,'aRucs')]") ?? Enumerable.Empty<HtmlNode>())
+        {
+            string? ruc=null, razon=null, ubic=null, estado=null;
+            var rucNode=a.SelectSingleNode(".//h4[contains(text(),'RUC')]");
+            if(rucNode!=null)
+            {
+                var m=System.Text.RegularExpressions.Regex.Match(rucNode.InnerText,@"\d{11}");
+                if(m.Success) ruc=m.Value;
+            }
+            var h4s=a.SelectNodes(".//h4");
+            if(h4s!=null && h4s.Count>1)
+                razon=WebUtility.HtmlDecode(h4s[1].InnerText.Trim());
+            var ub=a.SelectSingleNode(".//p[contains(text(),'Ubicación')]");
+            if(ub!=null) ubic=ub.InnerText.Split(':',2).Last().Trim();
+            var st=a.SelectSingleNode(".//p[contains(text(),'Estado')]");
+            if(st!=null) estado=st.InnerText.Split(':',2).Last().Trim();
+            yield return new SearchResultItem(ruc,razon,ubic,estado);
+        }
     }
 }

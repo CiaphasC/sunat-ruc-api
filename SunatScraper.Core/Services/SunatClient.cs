@@ -6,6 +6,7 @@ using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 using System.Net;
+using System.Linq;
 public sealed class SunatClient
 {
     private readonly HttpClient _http;
@@ -37,22 +38,26 @@ public sealed class SunatClient
         if(!InputGuards.IsValidDocumento(t,n)) throw new ArgumentException("Doc inválido");
         return SendAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
     }
+    public async Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string t,string n)
+    {
+        if(!InputGuards.IsValidDocumento(t,n)) throw new ArgumentException("Doc inválido");
+        var html = await SendRawAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
+        return RucParser.ParseList(html).ToList();
+    }
     public Task<RucInfo> ByRazonAsync(string q){
         if(!InputGuards.IsValidTexto(q)) throw new ArgumentException("Texto inválido");
         return SendAsync("consPorRazonSoc",("razSoc",q));
     }
-    private async Task<RucInfo> SendAsync(string accion, params (string k,string v)[] ex){
+    private async Task<string> SendRawAsync(string accion, params (string k,string v)[] ex){
         var form=new Dictionary<string,string>{{"accion",accion}};
         foreach(var (k,v) in ex)form[k]=v;
         string key=JsonSerializer.Serialize(form);
-        if(_mem.TryGetValue(key,out RucInfo? cached) && cached is not null)
-            return cached;
-        if(_redis!=null){
+        if(_mem.TryGetValue(key,out string? cachedHtml) && cachedHtml is not null)
+            return cachedHtml;
+        if(_redis!=null)
+        {
             var j=_redis.StringGet(key);
-            if(j.HasValue){
-                var tmp=JsonSerializer.Deserialize<RucInfo>(j.ToString());
-                if(tmp!=null) return tmp;
-            }
+            if(j.HasValue) return j.ToString();
         }
         var initRes=await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
         if(initRes.IsSuccessStatusCode){
@@ -77,9 +82,14 @@ public sealed class SunatClient
         using var res=await _http.SendAsync(req);
         res.EnsureSuccessStatusCode();
         var html=Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
-        var info=RucParser.Parse(html);
-        _mem.Set(key,info,new MemoryCacheEntryOptions{Size=1,SlidingExpiration=TimeSpan.FromHours(6)});
-        _redis?.StringSet(key,JsonSerializer.Serialize(info),TimeSpan.FromHours(12));
+        _mem.Set(key,html,new MemoryCacheEntryOptions{Size=1,SlidingExpiration=TimeSpan.FromHours(6)});
+        _redis?.StringSet(key,html,TimeSpan.FromHours(12));
+        return html;
+    }
+
+    private async Task<RucInfo> SendAsync(string accion, params (string k,string v)[] ex){
+        var html = await SendRawAsync(accion,ex);
+        var info = RucParser.Parse(html);
         return info;
     }
 }
