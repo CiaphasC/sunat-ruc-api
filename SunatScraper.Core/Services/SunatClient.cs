@@ -42,7 +42,7 @@ public sealed class SunatClient
     {
         if(!InputGuards.IsValidDocumento(t,n)) throw new ArgumentException("Doc inválido");
         var html = await SendRawAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
-        return RucParser.ParseList(html).ToList();
+        return RucParser.ParseList(html, true).ToList();
     }
     public Task<RucInfo> ByRazonAsync(string q){
         if(!InputGuards.IsValidTexto(q)) throw new ArgumentException("Texto inválido");
@@ -89,7 +89,7 @@ public sealed class SunatClient
 
     private async Task<RucInfo> SendAsync(string accion, params (string k,string v)[] ex){
         var html = await SendRawAsync(accion,ex);
-        var info = RucParser.Parse(html);
+        var info = RucParser.Parse(html, accion == "consPorTipdoc");
         return info;
     }
 }
