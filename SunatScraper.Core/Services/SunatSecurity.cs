@@ -1,5 +1,6 @@
 #define USE_TESSERACT
 namespace SunatScraper.Core.Services;
+using System.Net;
 using System.Security.Cryptography;
 using Tesseract;
 public class SunatSecurity
@@ -30,12 +31,16 @@ public class SunatSecurity
         req.Headers.Accept.ParseAdd("image/avif,image/webp,image/apng,image/*,*/*;q=0.8");
         req.Headers.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
         using var res=await _http.SendAsync(req);
+        if(res.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.NotFound){
+            Console.WriteLine($"[WARN] Captcha skipped: {(int)res.StatusCode} {res.ReasonPhrase}");
+            return string.Empty;
+        }
         if(!res.IsSuccessStatusCode)
             throw new InvalidOperationException($"Captcha request failed: {(int)res.StatusCode} {res.ReasonPhrase}");
         var png=await res.Content.ReadAsByteArrayAsync();
 #if USE_TESSERACT
         try{
-            using var eng=new TesseractEngine("/usr/share/tesseract-ocr/5/tessdata","eng",EngineMode.Default);
+            using var eng=new TesseractEngine("/usr/share/tessdata","eng",EngineMode.Default);
             using var pix=Pix.LoadFromMemory(png);
             using var page=eng.Process(pix);
             var txt=page.GetText().Trim().Replace(" ","").ToUpper();
