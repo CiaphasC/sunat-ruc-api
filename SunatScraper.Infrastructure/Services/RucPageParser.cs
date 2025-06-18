@@ -1,4 +1,6 @@
-// Analiza el HTML obtenido en las búsquedas por RUC.
+/// <summary>
+/// Analiza el HTML obtenido en las búsquedas por RUC.
+/// </summary>
 namespace SunatScraper.Infrastructure.Services;
 using HtmlAgilityPack;
 using SunatScraper.Domain.Models;
@@ -11,6 +13,9 @@ using System.Globalization;
 
 internal static class RucPageParser
 {
+    /// <summary>
+    /// Normaliza un texto eliminando signos diacríticos y convirtiéndolo a minúsculas.
+    /// </summary>
     static string Normalize(string s){
         var f=s.Normalize(NormalizationForm.FormD);
         Span<char> buf=stackalloc char[f.Length];
@@ -20,6 +25,9 @@ internal static class RucPageParser
                 buf[idx++]=char.ToLowerInvariant(c);
         return new string(buf[..idx]);
     }
+    /// <summary>
+    /// Busca un valor dentro del diccionario ignorando mayúsculas y acentos.
+    /// </summary>
     static string? GetValue(IDictionary<string,string> map,string label)
     {
         var normLabel = Normalize(label);
@@ -31,6 +39,9 @@ internal static class RucPageParser
         }
         return null;
     }
+    /// <summary>
+    /// Extrae la información detallada de un RUC desde el HTML proporcionado.
+    /// </summary>
     internal static RucInfo Parse(string html){
         var doc=new HtmlDocument();doc.LoadHtml(html);
         var map=new Dictionary<string,string>();
@@ -85,7 +96,7 @@ internal static class RucPageParser
             contribuyente=(dash>0?contribLine[..dash]:contribLine).Trim();
         }
 
-        // Fallback using regular expressions when values are missing
+        // Uso de expresiones regulares como respaldo cuando faltan datos
         var plain = WebUtility.HtmlDecode(doc.DocumentNode.InnerText);
         if(string.IsNullOrWhiteSpace(ruc))
         {
@@ -140,10 +151,14 @@ internal static class RucPageParser
             contribuyente);
     }
 
+    /// <summary>
+    /// Obtiene una colección de coincidencias desde la página de resultados de búsqueda.
+    /// </summary>
     internal static IEnumerable<SearchResultItem> ParseList(string html)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
+        // Procesamos cada enlace que representa un contribuyente en la lista
         foreach(var a in doc.DocumentNode.SelectNodes("//a[contains(@class,'aRucs')]") ?? Enumerable.Empty<HtmlNode>())
         {
             string? ruc=null, razon=null, ubic=null, estado=null;

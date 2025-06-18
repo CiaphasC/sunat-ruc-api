@@ -1,4 +1,6 @@
-// Servicio gRPC que expone las consultas de RUC.
+/// <summary>
+/// Servicio gRPC que expone las consultas de RUC.
+/// </summary>
 using System.Threading.Tasks;
 using Grpc.Core;
 using SunatScraper.Domain;
@@ -10,9 +12,15 @@ public class RucGrpcService : Sunat.SunatBase
 
     public RucGrpcService(ISunatClient client) => _client = client;
 
+    /// <summary>
+    /// Retorna la información correspondiente al RUC indicado.
+    /// </summary>
     public override async Task<RucReply> GetByRuc(RucRequest request, ServerCallContext _) =>
         Map(await _client.ByRucAsync(request.Ruc));
 
+    /// <summary>
+    /// Transforma el modelo de dominio en la respuesta gRPC.
+    /// </summary>
     private static RucReply Map(SunatScraper.Domain.Models.RucInfo info) => new()
     {
         Ruc = info.Ruc ?? string.Empty,

@@ -1,4 +1,6 @@
-// Cliente HTTP encargado de interactuar con el portal de SUNAT.
+/// <summary>
+/// Cliente HTTP encargado de interactuar con el portal de SUNAT.
+/// </summary>
 namespace SunatScraper.Infrastructure.Services;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -11,7 +13,7 @@ using System.Text;
 using System.Text.Json;
 
 /// <summary>
-/// HTTP client implementation for <see cref="ISunatClient"/>.
+/// Implementación de <see cref="ISunatClient"/> basada en <see cref="HttpClient"/>.
 /// </summary>
 public sealed class SunatClient : ISunatClient
 {
@@ -31,6 +33,9 @@ public sealed class SunatClient : ISunatClient
 
         Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
     }
+    /// <summary>
+    /// Crea una instancia de <see cref="ISunatClient"/> configurada y lista para usar.
+    /// </summary>
     public static ISunatClient Create(string? redisConnection = null)
     {
         var cookieJar = new CookieContainer();
@@ -58,9 +63,15 @@ public sealed class SunatClient : ISunatClient
 
         return new SunatClient(httpClient, memory, db, cookieJar);
     }
+    /// <summary>
+    /// Obtiene la información correspondiente a un RUC.
+    /// </summary>
     public Task<RucInfo> ByRucAsync(string ruc) =>
         SendAsync("consPorRuc", ("nroRuc", ruc));
 
+    /// <summary>
+    /// Realiza la búsqueda de contribuyente por tipo y número de documento.
+    /// </summary>
     public async Task<RucInfo> ByDocumentoAsync(string tipo, string numero)
     {
         if (!InputGuards.IsValidDocumento(tipo, numero))
@@ -75,6 +86,9 @@ public sealed class SunatClient : ISunatClient
         return RucParser.Parse(html, true);
     }
 
+    /// <summary>
+    /// Devuelve el listado de contribuyentes asociados a un documento.
+    /// </summary>
     public async Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string tipo, string numero)
     {
         if (!InputGuards.IsValidDocumento(tipo, numero))
@@ -84,6 +98,9 @@ public sealed class SunatClient : ISunatClient
         return RucParser.ParseList(html, true).ToList();
     }
 
+    /// <summary>
+    /// Obtiene coincidencias a partir de la razón social.
+    /// </summary>
     public async Task<IReadOnlyList<SearchResultItem>> SearchRazonAsync(string query)
     {
         if (!InputGuards.IsValidTexto(query))
@@ -93,6 +110,9 @@ public sealed class SunatClient : ISunatClient
         return RucParser.ParseList(html).ToList();
     }
 
+    /// <summary>
+    /// Devuelve la información de la primera coincidencia por razón social.
+    /// </summary>
     public async Task<RucInfo> ByRazonAsync(string query)
     {
         if (!InputGuards.IsValidTexto(query))
@@ -111,7 +131,9 @@ public sealed class SunatClient : ISunatClient
         var parsed = RucParser.Parse(html);
         return !string.IsNullOrWhiteSpace(ubicacion) ? parsed with { Ubicacion = ubicacion } : parsed;
     }
-    // Envía la solicitud al portal de SUNAT y devuelve el HTML resultante.
+    /// <summary>
+    /// Envía la solicitud al portal de SUNAT y devuelve el HTML resultante.
+    /// </summary>
     private async Task<string> SendRawAsync(string accion, params (string k, string v)[] extras)
     {
         var form = new Dictionary<string, string> { { "accion", accion } };
@@ -166,7 +188,9 @@ public sealed class SunatClient : ISunatClient
         return html;
     }
 
-    // Método auxiliar que procesa el HTML obtenido y lo convierte en un modelo de dominio.
+    /// <summary>
+    /// Método auxiliar que procesa el HTML obtenido y lo convierte en un modelo de dominio.
+    /// </summary>
     private async Task<RucInfo> SendAsync(string accion, params (string k, string v)[] extras)
     {
         var html = await SendRawAsync(accion, extras);
