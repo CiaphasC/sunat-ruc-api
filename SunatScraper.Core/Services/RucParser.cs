@@ -3,8 +3,15 @@ using HtmlAgilityPack;
 using SunatScraper.Core.Models;
 using System.Net;
 using System.Linq;
+using System;
 public static class RucParser
 {
+    static string? GetValue(IDictionary<string,string> map,string label){
+        foreach(var (k,v) in map)
+            if(k.Contains(label,StringComparison.OrdinalIgnoreCase))
+                return v;
+        return null;
+    }
     public static RucInfo Parse(string html){
         var doc=new HtmlDocument();doc.LoadHtml(html);
         var map=new Dictionary<string,string>();
@@ -14,11 +21,22 @@ public static class RucParser
             while(val is {Name: not "td"}) val=val.NextSibling;
             map[key]=WebUtility.HtmlDecode(val?.InnerText.Trim()??"");
         }
+        if(map.Count==0){
+            foreach(var node in doc.DocumentNode.SelectNodes("//*[contains(@class,'list-group-item')]") ?? Enumerable.Empty<HtmlNode>()){
+                var text=WebUtility.HtmlDecode(node.InnerText.Trim());
+                int idx=text.IndexOf(':');
+                if(idx>0){
+                    var key=text[..idx].Trim();
+                    var val=text[(idx+1)..].Trim();
+                    map[key]=val;
+                }
+            }
+        }
         return new RucInfo(
-            map.GetValueOrDefault("Número de RUC"),
-            map.GetValueOrDefault("Nombre o Razón Social")??map.GetValueOrDefault("Nombre Comercial"),
-            map.GetValueOrDefault("Estado del Contribuyente"),
-            map.GetValueOrDefault("Condición del Contribuyente"),
-            map.GetValueOrDefault("Dirección del Domicilio Fiscal"));
+            GetValue(map,"RUC"),
+            GetValue(map,"Razón") ?? GetValue(map,"Nombre"),
+            GetValue(map,"Estado"),
+            GetValue(map,"Condición"),
+            GetValue(map,"Dirección"));
     }
 }
