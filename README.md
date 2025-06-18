@@ -88,10 +88,31 @@ Se adopta una **arquitectura en capas** donde el núcleo de negocio se mantiene 
 - **Caching** en memoria y opcionalmente en Redis para optimizar consultas repetitivas.
 
 ### ¿Por qué C# .NET?
-- Alto rendimiento y soporte multiplataforma.
-- Amplio ecosistema de bibliotecas para HTTP, gRPC y manipulación de HTML.
-- Facilidad de despliegue en contenedores o servidores Windows/Linux.
+C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime
+de .NET. Su compilación JIT y las optimizaciones del CLR permiten obtener un
+alto rendimiento en aplicaciones de red sin sacrificar la legibilidad del
+código. Además, .NET es completamente multiplataforma, por lo que la API puede
+ejecutarse tanto en Windows como en Linux sin modificaciones.
 
+La biblioteca estándar ofrece utilidades listas para usar en escenarios de
+procesamiento de HTTP, serialización de JSON y manipulación de HTML, pilares
+fundamentales de este proyecto. Las facilidades de programación asíncrona con
+`async`/`await` simplifican la implementación de clientes web concurrentes y de
+servidores de alto rendimiento.
+
+El amplio ecosistema de .NET incluye frameworks integrados para exponer
+endpoints REST y servicios gRPC, permitiendo reutilizar la misma lógica de
+negocio en diferentes formas de comunicación. Gracias a la inyección de
+dependencias nativa es sencillo mantener las capas desacopladas y preparar el
+código para pruebas automatizadas.
+
+Otro punto a favor es la facilidad de despliegue. La aplicación puede publicarse
+como un ejecutable autocontenible o dentro de un contenedor Docker, garantizando
+portabilidad y un proceso de instalación trivial.
+
+En conjunto, C# .NET brinda un balance entre rendimiento, productividad y un
+ecosistema maduro. Estas características lo hacen idóneo para implementar la
+solución de consulta de RUC que expone esta API.
 
 ## 🗂 Estructura del proyecto
 ```text
