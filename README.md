@@ -163,10 +163,10 @@ solución de consulta de RUC que expone esta API.
 │   ├── Services
 │   ├── SunatScraper.Core.csproj
 │   └── Validation
-└── SunatScraper.Grpc
-    ├── Services
-    ├── SunatScraper.Grpc.csproj
-    └── sunat.proto
+├── SunatScraper.Grpc
+│   ├── Services
+│   ├── SunatScraper.Grpc.csproj
+│   └── sunat.proto
 ```
 
 ## ⚠️ Advertencia
