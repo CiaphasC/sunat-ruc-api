@@ -59,9 +59,14 @@ public sealed class SunatClient
         if(!InputGuards.IsValidTexto(q)) throw new ArgumentException("Texto inválido");
         var html = await SendRawAsync("consPorRazonSoc",("razSoc",q));
         var list = RucParser.ParseList(html).ToList();
+        string? ubicacion = list.Count>0 ? list[0].Ubicacion : null;
         if(list.Count>0 && !string.IsNullOrWhiteSpace(list[0].Ruc))
-            return await ByRucAsync(list[0].Ruc!);
-        return RucParser.Parse(html);
+        {
+            var info = await ByRucAsync(list[0].Ruc!);
+            return !string.IsNullOrWhiteSpace(ubicacion) ? info with { Ubicacion = ubicacion } : info;
+        }
+        var parsed = RucParser.Parse(html);
+        return !string.IsNullOrWhiteSpace(ubicacion) ? parsed with { Ubicacion = ubicacion } : parsed;
     }
     private async Task<string> SendRawAsync(string accion, params (string k,string v)[] ex){
         var form=new Dictionary<string,string>{{"accion",accion}};
