@@ -36,6 +36,18 @@ curl http://localhost:5000/ruc/20100113774
 ```bash
 curl http://localhost:5000/doc/1/73870570
 ```
+### Búsqueda por documento (Carnet de Extranjería)
+```bash
+curl http://localhost:5000/doc/4/X12345678
+```
+### Búsqueda por documento (Pasaporte)
+```bash
+curl http://localhost:5000/doc/7/AB123456
+```
+### Búsqueda por documento (Cédula Diplomática)
+```bash
+curl http://localhost:5000/doc/A/CD12345
+```
 ### Obtener lista de resultados para un documento
 ```bash
 curl http://localhost:5000/doc/1/73870570/lista
@@ -44,6 +56,10 @@ curl http://localhost:5000/doc/1/73870570/lista
 ### Búsqueda por razón social
 ```bash
 curl "http://localhost:5000/rs?q=ACME"
+```
+### Búsqueda por razón social con espacios
+```bash
+curl "http://localhost:5000/rs?q=LOS%20POLLOS%20HERMANOS"
 ```
 
 ### Ejemplo con Redis activado
