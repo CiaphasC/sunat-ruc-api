@@ -1,5 +1,5 @@
 #define USE_TESSERACT
-namespace SunatScraper.Core.Services;
+namespace SunatScraper.Infrastructure.Services;
 
 using System.Net;
 using System.Security.Cryptography;

@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Json;
 using System.Text.Json.Serialization;
-using SunatScraper.Core.Services;
+using SunatScraper.Infrastructure.Services;
+using SunatScraper.Domain;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);

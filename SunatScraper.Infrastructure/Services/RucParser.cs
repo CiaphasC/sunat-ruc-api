@@ -1,5 +1,5 @@
-namespace SunatScraper.Core.Services;
-using SunatScraper.Core.Models;
+namespace SunatScraper.Infrastructure.Services;
+using SunatScraper.Domain.Models;
 using System.Collections.Generic;
 
 public static class RucParser
