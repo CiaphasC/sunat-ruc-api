@@ -19,7 +19,10 @@ public sealed class SunatClient
     public static SunatClient Create(string? redis=null){
         var handler=new HttpClientHandler{CookieContainer=new CookieContainer(),AutomaticDecompression=DecompressionMethods.All};
         var http=new HttpClient(handler){BaseAddress=new Uri("https://e-consultaruc.sunat.gob.pe/")};
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/122.0.0.0 Safari/537.36");
         http.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         http.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests","1");
         http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
@@ -52,6 +55,7 @@ public sealed class SunatClient
         await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
         form["token"]=_sec.GenerateToken();
         form["codigo"]=await _sec.SolveCaptchaAsync();
+        form["numRnd"]=_sec.LastRandom.ToString();
         form["contexto"]="ti-it";form["modo"]="1";
         using var req=new HttpRequestMessage(HttpMethod.Post,"cl-ti-itmrconsruc/jcrS00Alias"){
             Content=new FormUrlEncodedContent(form)

@@ -5,6 +5,7 @@ using Tesseract;
 public class SunatSecurity
 {
     private readonly HttpClient _http;
+    public int LastRandom { get; private set; }
     public SunatSecurity(HttpClient h)=>_http=h;
     public string GenerateToken(int len=52){
         var sb=new System.Text.StringBuilder(len);
@@ -23,6 +24,7 @@ public class SunatSecurity
     }
     public async Task<string> SolveCaptchaAsync(){
         int rnd=Random.Shared.Next(1,9999);
+        LastRandom = rnd;
         var req=new HttpRequestMessage(HttpMethod.Get,$"/cl-ti-itmrconsruc/captcha?accion=image&nmagic={rnd}");
         req.Headers.Referrer=new Uri(_http.BaseAddress!,"cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
         req.Headers.Accept.ParseAdd("image/avif,image/webp,image/apng,image/*,*/*;q=0.8");
