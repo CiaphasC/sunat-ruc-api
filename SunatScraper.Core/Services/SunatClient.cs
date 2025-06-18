@@ -34,9 +34,19 @@ public sealed class SunatClient
         return new SunatClient(http,mem,db,jar);
     }
     public Task<RucInfo> ByRucAsync(string r)=>SendAsync("consPorRuc",("nroRuc",r));
-    public Task<RucInfo> ByDocumentoAsync(string t,string n){
+    public async Task<RucInfo> ByDocumentoAsync(string t,string n){
         if(!InputGuards.IsValidDocumento(t,n)) throw new ArgumentException("Doc inválido");
-        return SendAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
+        var html = await SendRawAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
+        var info = RucParser.Parse(html, true);
+        if(string.IsNullOrEmpty(info.RazonSocial) &&
+           string.IsNullOrEmpty(info.Direccion) &&
+           string.IsNullOrEmpty(info.Condicion))
+        {
+            var first = RucParser.ParseList(html, true).FirstOrDefault();
+            if(first?.Ruc is not null)
+                info = await ByRucAsync(first.Ruc);
+        }
+        return info;
     }
     public async Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string t,string n)
     {
