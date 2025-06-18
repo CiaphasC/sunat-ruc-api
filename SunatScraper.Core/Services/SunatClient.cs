@@ -33,51 +33,13 @@ public sealed class SunatClient
         return new SunatClient(http,mem,db,jar);
     }
     public Task<RucInfo> ByRucAsync(string r)=>SendAsync("consPorRuc",("nroRuc",r));
-    public async Task<RucInfo> ByDocumentoAsync(string t,string n){
+    public Task<RucInfo> ByDocumentoAsync(string t,string n){
         if(!InputGuards.IsValidDocumento(t,n)) throw new ArgumentException("Doc inválido");
-        if(t=="1"){ // DNI search returns list
-            var html = await FetchHtmlAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
-            var ruc = RucParser.ParseListado(html).FirstOrDefault().Ruc;
-            if(InputGuards.IsValidRuc(ruc))
-                return await ByRucAsync(ruc);
-            return RucParser.Parse(html);
-        }
-        var info = await SendAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
-        if(string.IsNullOrEmpty(info.RazonSocial) && info.Ruc is not null){
-            var ruc = info.Ruc.Split(' ', '-', System.StringSplitOptions.RemoveEmptyEntries)[0];
-            if(InputGuards.IsValidRuc(ruc))
-                info = await ByRucAsync(ruc);
-        }
-        return info;
+        return SendAsync("consPorTipdoc",("tipdoc",t),("nrodoc",n));
     }
     public Task<RucInfo> ByRazonAsync(string q){
         if(!InputGuards.IsValidTexto(q)) throw new ArgumentException("Texto inválido");
         return SendAsync("consPorRazonSoc",("razSoc",q));
-    }
-
-    private async Task<string> FetchHtmlAsync(string accion, params (string k,string v)[] ex){
-        var form=new Dictionary<string,string>{{"accion",accion}};
-        foreach(var (k,v) in ex)form[k]=v;
-        var initRes=await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
-        if(initRes.IsSuccessStatusCode){
-            var body=await initRes.Content.ReadAsStringAsync();
-            const string pat=@"document\.cookie\s*=\s*""([^""]+)""";
-            foreach(System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body,pat)){
-                var cookie=m.Groups[1].Value.Split(';',2)[0];
-                var p=cookie.IndexOf('=');
-                if(p>0)
-                    _cookie.Add(new Uri(_http.BaseAddress!,"/"),new Cookie(cookie[..p],cookie[(p+1)..]));
-            }
-        }
-        form["token"]=_sec.GenerateToken();
-        form["codigo"]=await _sec.SolveCaptchaAsync();
-        form["numRnd"]=_sec.LastRandom.ToString();
-        form["contexto"]="ti-it";form["modo"]="1";
-        using var req=new HttpRequestMessage(HttpMethod.Post,"cl-ti-itmrconsruc/jcrS00Alias"){Content=new FormUrlEncodedContent(form)};
-        req.Headers.Referrer=new Uri(_http.BaseAddress!,"cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
-        using var res=await _http.SendAsync(req);
-        res.EnsureSuccessStatusCode();
-        return Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
     }
     private async Task<RucInfo> SendAsync(string accion, params (string k,string v)[] ex){
         var form=new Dictionary<string,string>{{"accion",accion}};
@@ -92,7 +54,29 @@ public sealed class SunatClient
                 if(tmp!=null) return tmp;
             }
         }
-        var html=await FetchHtmlAsync(accion,ex);
+        var initRes=await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        if(initRes.IsSuccessStatusCode){
+            var body=await initRes.Content.ReadAsStringAsync();
+            const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
+            foreach(System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body,pat)){
+                var cookie=m.Groups[1].Value.Split(';',2)[0];
+                var p=cookie.IndexOf('=');
+                if(p>0){
+                    _cookie.Add(new Uri(_http.BaseAddress!,"/"),new Cookie(cookie[..p],cookie[(p+1)..]));
+                }
+            }
+        }
+        form["token"]=_sec.GenerateToken();
+        form["codigo"]=await _sec.SolveCaptchaAsync();
+        form["numRnd"]=_sec.LastRandom.ToString();
+        form["contexto"]="ti-it";form["modo"]="1";
+        using var req=new HttpRequestMessage(HttpMethod.Post,"cl-ti-itmrconsruc/jcrS00Alias"){
+            Content=new FormUrlEncodedContent(form)
+        };
+        req.Headers.Referrer=new Uri(_http.BaseAddress!,"cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        using var res=await _http.SendAsync(req);
+        res.EnsureSuccessStatusCode();
+        var html=Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
         var info=RucParser.Parse(html);
         _mem.Set(key,info,new MemoryCacheEntryOptions{Size=1,SlidingExpiration=TimeSpan.FromHours(6)});
         _redis?.StringSet(key,JsonSerializer.Serialize(info),TimeSpan.FromHours(12));

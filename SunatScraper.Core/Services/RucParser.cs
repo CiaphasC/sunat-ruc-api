@@ -32,37 +32,11 @@ public static class RucParser
                 }
             }
         }
-        string? ruc = GetValue(map, "RUC");
-        string? razon = GetValue(map, "Razón") ?? GetValue(map, "Nombre");
-        if(ruc is not null){
-            int p = ruc.IndexOf('-');
-            if(p>0){
-                var maybe = ruc[..p].Trim();
-                if(Validation.InputGuards.IsValidRuc(maybe)){
-                    razon ??= ruc[(p+1)..].Trim();
-                    ruc = maybe;
-                }
-            }
-        }
         return new RucInfo(
-            ruc,
-            razon,
-            GetValue(map, "Estado"),
-            GetValue(map, "Condición"),
-            GetValue(map, "Dirección") ?? GetValue(map, "Domicilio"));
-    }
-
-    public static IEnumerable<(string Ruc,string Nombre)> ParseListado(string html){
-        var doc=new HtmlDocument();doc.LoadHtml(html);
-        foreach(var a in doc.DocumentNode.SelectNodes("//a[contains(@class,'aRucs')]") ?? Enumerable.Empty<HtmlNode>()){
-            var ruc=a.GetAttributeValue("data-ruc",string.Empty);
-            if(string.IsNullOrWhiteSpace(ruc)){
-                var m=System.Text.RegularExpressions.Regex.Match(a.InnerText,@"RUC:\s*(\d{11})");
-                if(m.Success) ruc=m.Groups[1].Value;
-            }
-            var nombre=a.SelectNodes(".//h4").Skip(1).FirstOrDefault()?.InnerText.Trim() ?? string.Empty;
-            if(!string.IsNullOrWhiteSpace(ruc))
-                yield return (ruc,WebUtility.HtmlDecode(nombre));
-        }
+            GetValue(map,"RUC"),
+            GetValue(map,"Razón") ?? GetValue(map,"Nombre"),
+            GetValue(map,"Estado"),
+            GetValue(map,"Condición"),
+            GetValue(map,"Dirección"));
     }
 }
