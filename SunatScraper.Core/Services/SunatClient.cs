@@ -20,6 +20,9 @@ public sealed class SunatClient
         var handler=new HttpClientHandler{CookieContainer=new CookieContainer(),AutomaticDecompression=DecompressionMethods.All};
         var http=new HttpClient(handler){BaseAddress=new Uri("https://e-consultaruc.sunat.gob.pe/")};
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");
+        http.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        http.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests","1");
+        http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
         var mem=new MemoryCache(new MemoryCacheOptions{SizeLimit=2048});
         IDatabase? db= redis is null ? null : ConnectionMultiplexer.Connect(redis).GetDatabase();
         return new SunatClient(http,mem,db);
@@ -37,16 +40,24 @@ public sealed class SunatClient
         var form=new Dictionary<string,string>{{"accion",accion}};
         foreach(var (k,v) in ex)form[k]=v;
         string key=JsonSerializer.Serialize(form);
-        if(_mem.TryGetValue(key,out RucInfo c))return c;
+        if(_mem.TryGetValue(key,out RucInfo? cached) && cached is not null)
+            return cached;
         if(_redis!=null){
             var j=_redis.StringGet(key);
-            if(j.HasValue) return JsonSerializer.Deserialize<RucInfo>(j.ToString())!;
+            if(j.HasValue){
+                var tmp=JsonSerializer.Deserialize<RucInfo>(j.ToString());
+                if(tmp!=null) return tmp;
+            }
         }
         await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
         form["token"]=_sec.GenerateToken();
         form["codigo"]=await _sec.SolveCaptchaAsync();
         form["contexto"]="ti-it";form["modo"]="1";
-        using var res=await _http.PostAsync("cl-ti-itmrconsruc/jcrS00Alias",new FormUrlEncodedContent(form));
+        using var req=new HttpRequestMessage(HttpMethod.Post,"cl-ti-itmrconsruc/jcrS00Alias"){
+            Content=new FormUrlEncodedContent(form)
+        };
+        req.Headers.Referrer=new Uri(_http.BaseAddress!,"cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        using var res=await _http.SendAsync(req);
         res.EnsureSuccessStatusCode();
         var html=Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
         var info=RucParser.Parse(html);
