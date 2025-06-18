@@ -12,12 +12,14 @@ public sealed class SunatClient
     private readonly SunatSecurity _sec;
     private readonly IMemoryCache _mem;
     private readonly IDatabase? _redis;
-    private SunatClient(HttpClient h,IMemoryCache m,IDatabase? r){
-        _http=h;_mem=m;_redis=r;_sec=new SunatSecurity(h);
+    private readonly CookieContainer _cookie;
+    private SunatClient(HttpClient h,IMemoryCache m,IDatabase? r,CookieContainer c){
+        _http=h;_mem=m;_redis=r;_cookie=c;_sec=new SunatSecurity(h);
         Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
     }
     public static SunatClient Create(string? redis=null){
-        var handler=new HttpClientHandler{CookieContainer=new CookieContainer(),AutomaticDecompression=DecompressionMethods.All};
+        var jar=new CookieContainer();
+        var handler=new HttpClientHandler{CookieContainer=jar,AutomaticDecompression=DecompressionMethods.All};
         var http=new HttpClient(handler){BaseAddress=new Uri("https://e-consultaruc.sunat.gob.pe/")};
         http.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
@@ -28,7 +30,7 @@ public sealed class SunatClient
         http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
         var mem=new MemoryCache(new MemoryCacheOptions{SizeLimit=2048});
         IDatabase? db= redis is null ? null : ConnectionMultiplexer.Connect(redis).GetDatabase();
-        return new SunatClient(http,mem,db);
+        return new SunatClient(http,mem,db,jar);
     }
     public Task<RucInfo> ByRucAsync(string r)=>SendAsync("consPorRuc",("nroRuc",r));
     public Task<RucInfo> ByDocumentoAsync(string t,string n){
@@ -52,7 +54,18 @@ public sealed class SunatClient
                 if(tmp!=null) return tmp;
             }
         }
-        await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        var initRes=await _http.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        if(initRes.IsSuccessStatusCode){
+            var body=await initRes.Content.ReadAsStringAsync();
+            const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
+            foreach(System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body,pat)){
+                var cookie=m.Groups[1].Value.Split(';',2)[0];
+                var p=cookie.IndexOf('=');
+                if(p>0){
+                    _cookie.Add(new Uri(_http.BaseAddress!,"/"),new Cookie(cookie[..p],cookie[(p+1)..]));
+                }
+            }
+        }
         form["token"]=_sec.GenerateToken();
         form["codigo"]=await _sec.SolveCaptchaAsync();
         form["numRnd"]=_sec.LastRandom.ToString();
