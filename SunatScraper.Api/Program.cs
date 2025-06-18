@@ -4,17 +4,32 @@ using System.Text.Json.Serialization;
 using SunatScraper.Core.Services;
 using Serilog;
 
-var b=WebApplication.CreateBuilder(args);
-b.Host.UseSerilog((ctx,lc)=>lc.WriteTo.Console());
-b.Services.AddSingleton(_=>SunatClient.Create(b.Configuration["Redis"]));
-b.Services.ConfigureHttpJsonOptions(o=>
-    o.SerializerOptions.DefaultIgnoreCondition=JsonIgnoreCondition.WhenWritingNull);
-var app=b.Build();
+var builder = WebApplication.CreateBuilder(args);
 
-app.MapGet("/",()=> "SUNAT RUC API ok");
-app.MapGet("/ruc/{r}",async([FromServices]SunatClient s,string r)=>Results.Json(await s.ByRucAsync(r)));
-app.MapGet("/doc/{t}/{n}",async([FromServices]SunatClient s,string t,string n)=>Results.Json(await s.ByDocumentoAsync(t,n)));
-app.MapGet("/doc/{t}/{n}/lista",async([FromServices]SunatClient s,string t,string n)=>Results.Json(await s.SearchDocumentoAsync(t,n)));
-app.MapGet("/rs/lista",async([FromServices]SunatClient s,[FromQuery]string q)=>Results.Json(await s.SearchRazonAsync(q)));
-app.MapGet("/rs",async([FromServices]SunatClient s,[FromQuery]string q)=>Results.Json(await s.ByRazonAsync(q)));
+builder.Host.UseSerilog((ctx, lc) => lc.WriteTo.Console());
+
+builder.Services.AddSingleton<ISunatClient>(_ =>
+    SunatClient.Create(builder.Configuration["Redis"]));
+
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull);
+
+var app = builder.Build();
+
+app.MapGet("/", () => "SUNAT RUC API ok");
+
+app.MapGet("/ruc/{ruc}", async ([FromServices] ISunatClient client, string ruc) =>
+    Results.Json(await client.ByRucAsync(ruc)));
+
+app.MapGet("/doc/{tipo}/{numero}", async ([FromServices] ISunatClient client, string tipo, string numero) =>
+    Results.Json(await client.ByDocumentoAsync(tipo, numero)));
+
+app.MapGet("/doc/{tipo}/{numero}/lista", async ([FromServices] ISunatClient client, string tipo, string numero) =>
+    Results.Json(await client.SearchDocumentoAsync(tipo, numero)));
+
+app.MapGet("/rs/lista", async ([FromServices] ISunatClient client, [FromQuery] string razonSocial) =>
+    Results.Json(await client.SearchRazonAsync(razonSocial)));
+
+app.MapGet("/rs", async ([FromServices] ISunatClient client, [FromQuery] string razonSocial) =>
+    Results.Json(await client.ByRazonAsync(razonSocial)));
 app.Run();
