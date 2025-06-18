@@ -8,6 +8,5 @@
   <ItemGroup>
     <ProjectReference Include="..\SunatScraper.Core\SunatScraper.Core.csproj" />
     <PackageReference Include="Serilog.AspNetCore" Version="7.*" />
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>

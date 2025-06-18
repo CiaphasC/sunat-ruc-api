@@ -23,7 +23,14 @@ public class SunatSecurity
     }
     public async Task<string> SolveCaptchaAsync(){
         int rnd=Random.Shared.Next(1,9999);
-        var png=await _http.GetByteArrayAsync($"/cl-ti-itmrconsruc/captcha?accion=image&nmagic={rnd}");
+        var req=new HttpRequestMessage(HttpMethod.Get,$"/cl-ti-itmrconsruc/captcha?accion=image&nmagic={rnd}");
+        req.Headers.Referrer=new Uri(_http.BaseAddress!,"cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        req.Headers.Accept.ParseAdd("image/avif,image/webp,image/apng,image/*,*/*;q=0.8");
+        req.Headers.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
+        using var res=await _http.SendAsync(req);
+        if(!res.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Captcha request failed: {(int)res.StatusCode} {res.ReasonPhrase}");
+        var png=await res.Content.ReadAsByteArrayAsync();
 #if USE_TESSERACT
         try{
             using var eng=new TesseractEngine("/usr/share/tesseract-ocr/5/tessdata","eng",EngineMode.Default);
