@@ -1,3 +1,4 @@
+// Modelo que representa la información detallada de un RUC consultado.
 namespace SunatScraper.Domain.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;

@@ -1,3 +1,4 @@
+// Cliente HTTP encargado de interactuar con el portal de SUNAT.
 namespace SunatScraper.Infrastructure.Services;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -110,6 +111,7 @@ public sealed class SunatClient : ISunatClient
         var parsed = RucParser.Parse(html);
         return !string.IsNullOrWhiteSpace(ubicacion) ? parsed with { Ubicacion = ubicacion } : parsed;
     }
+    // Envía la solicitud al portal de SUNAT y devuelve el HTML resultante.
     private async Task<string> SendRawAsync(string accion, params (string k, string v)[] extras)
     {
         var form = new Dictionary<string, string> { { "accion", accion } };
@@ -164,6 +166,7 @@ public sealed class SunatClient : ISunatClient
         return html;
     }
 
+    // Método auxiliar que procesa el HTML obtenido y lo convierte en un modelo de dominio.
     private async Task<RucInfo> SendAsync(string accion, params (string k, string v)[] extras)
     {
         var html = await SendRawAsync(accion, extras);

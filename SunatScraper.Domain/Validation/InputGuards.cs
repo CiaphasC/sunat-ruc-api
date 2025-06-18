@@ -1,3 +1,4 @@
+// Métodos auxiliares para validar parámetros de entrada.
 namespace SunatScraper.Domain.Validation;
 
 /// <summary>

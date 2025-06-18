@@ -25,64 +25,106 @@ dotnet run --project SunatScraper.Api
 La API quedará disponible en `http://localhost:5000/`.
 
 ## 📁 Endpoints principales
-- `GET /` – Comprobación de funcionamiento.
-- `GET /ruc/{ruc}` – Consulta por número de RUC.
-- `GET /doc/{tipo}/{numero}` – Búsqueda por tipo y número de documento.
-- `GET /doc/{tipo}/{numero}/lista` – Devuelve la "Relación de contribuyentes" para el documento indicado.
-- `GET /rs/lista?q={razon social}` – Lista de resultados por razón social.
-- `GET /rs?q={razon social}` – Búsqueda por nombre o razón social. El resultado incluye `ubicacion` cuando está disponible.
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET`  | `/` | Comprobación de funcionamiento |
+| `GET`  | `/ruc/{ruc}` | Consulta por número de RUC |
+| `GET`  | `/doc/{tipo}/{numero}` | Búsqueda por tipo y número de documento |
+| `GET`  | `/doc/{tipo}/{numero}/lista` | Devuelve la "Relación de contribuyentes" para el documento indicado |
+| `GET`  | `/rs/lista?q={razon social}` | Lista de resultados por razón social |
+| `GET`  | `/rs?q={razon social}` | Búsqueda por nombre o razón social (incluye `ubicacion` cuando está disponible) |
 
 ## 💻 Ejemplos de uso
-### Consulta por RUC
+
+<details>
+<summary>Consulta por RUC</summary>
+
 ```bash
 curl http://localhost:5000/ruc/20100113774
 ```
+</details>
 
-### Búsqueda por documento (DNI)
+<details>
+<summary>Búsqueda por documento (DNI)</summary>
+
 ```bash
 curl http://localhost:5000/doc/1/73870570
 ```
-### Búsqueda por documento (Carnet de Extranjería)
+</details>
+
+<details>
+<summary>Búsqueda por documento (Carnet de Extranjería)</summary>
+
 ```bash
 curl http://localhost:5000/doc/4/X12345678
 ```
-### Búsqueda por documento (Pasaporte)
+</details>
+
+<details>
+<summary>Búsqueda por documento (Pasaporte)</summary>
+
 ```bash
 curl http://localhost:5000/doc/7/AB123456
 ```
-### Búsqueda por documento (Cédula Diplomática)
+</details>
+
+<details>
+<summary>Búsqueda por documento (Cédula Diplomática)</summary>
+
 ```bash
 curl http://localhost:5000/doc/A/CD12345
 ```
-### Obtener lista de resultados para un documento
+</details>
+
+<details>
+<summary>Obtener lista de resultados para un documento</summary>
+
 ```bash
 curl http://localhost:5000/doc/1/73870570/lista
 ```
+</details>
 
-### Obtener lista de resultados por razón social
+<details>
+<summary>Obtener lista de resultados por razón social</summary>
+
 ```bash
 curl "http://localhost:5000/rs/lista?q=ACME"
 ```
+</details>
 
-### Búsqueda por razón social
+<details>
+<summary>Búsqueda por razón social</summary>
+
 ```bash
 curl "http://localhost:5000/rs?q=ACME"
 ```
-### Búsqueda por razón social con espacios
+</details>
+
+<details>
+<summary>Búsqueda por razón social con espacios</summary>
+
 ```bash
 curl "http://localhost:5000/rs?q=LOS%20POLLOS%20HERMANOS"
 ```
+</details>
 
-### Ejemplo con Redis activado
+<details>
+<summary>Ejemplo con Redis activado</summary>
+
 ```bash
 Redis=localhost:6379 dotnet run --project SunatScraper.Api
 curl http://localhost:5000/ruc/20100113774
 ```
+</details>
 
-### Consulta vía gRPC
+<details>
+<summary>Consulta vía gRPC</summary>
+
 ```bash
 grpcurl -d '{"ruc":"20100113774"}' -plaintext localhost:5000 Sunat/GetByRuc
 ```
+</details>
 
 ## 📄 Arquitectura
 El proyecto se compone de tres módulos bien definidos:
@@ -124,24 +166,19 @@ graph TD;
 - ⚡ **Caching** en memoria o Redis para optimizar las consultas repetitivas.
 
 ### ¿Por qué C# .NET?
-C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime
-de .NET. Su compilación JIT y las optimizaciones del CLR permiten obtener un
-alto rendimiento en aplicaciones de red sin sacrificar la legibilidad del
-código. Además, .NET es totalmente multiplataforma: la API puede desplegarse en
-Windows, Linux o contenedores Docker sin modificaciones.
 
-La biblioteca estándar ofrece utilidades listas para usar en escenarios de
-procesamiento de HTTP, serialización de JSON y manipulación de HTML,
-pilares fundamentales de este proyecto. Las facilidades de programación
-asíncrona con `async`/`await` simplifican la implementación de clientes web
-concurrentes y de servidores de alto rendimiento.
+> C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime de .NET. Su compilación JIT y las optimizaciones del CLR permiten obtener un alto rendimiento en aplicaciones de red sin sacrificar la legibilidad del código. Además, .NET es completamente multiplataforma: la API puede desplegarse en Windows, Linux o contenedores Docker sin modificaciones.
+>
+> La biblioteca estándar ofrece utilidades listas para usar en escenarios de procesamiento de HTTP, serialización de JSON y manipulación de HTML, pilares fundamentales de este proyecto. Las facilidades de programación asíncrona con `async`/`await` simplifican la implementación de clientes web concurrentes y de servidores de alto rendimiento.
+>
+> El amplio ecosistema de .NET incluye frameworks integrados para exponer endpoints REST y servicios gRPC, permitiendo reutilizar la misma lógica de negocio en distintas formas de comunicación. Gracias a la inyección de dependencias nativa es sencillo mantener las capas desacopladas y preparar el código para pruebas automatizadas, facilitando así la mantenibilidad a largo plazo.
 
-El amplio ecosistema de .NET incluye frameworks integrados para exponer
-endpoints REST y servicios gRPC, permitiendo reutilizar la misma lógica de
-negocio en distintas formas de comunicación. Gracias a la inyección de
-dependencias nativa es sencillo mantener las capas desacopladas y preparar el
-código para pruebas automatizadas, facilitando así la mantenibilidad a largo
-plazo.
+- 🏎️ **Alto rendimiento** gracias a la compilación JIT del CLR.
+- 🖥️ **Multiplataforma**: ejecuta la API en Windows, Linux o contenedores Docker.
+- 📚 **Biblioteca estándar completa** para HTTP, JSON y HTML.
+- 😌 **Asincronía sencilla** con `async`/`await` para clientes y servidores eficientes.
+- 🔌 **Frameworks integrados** para REST y gRPC con la misma lógica de negocio.
+- 🔧 **Inyección de dependencias** nativa que facilita las pruebas y el mantenimiento.
 
 ### Despliegue
 La aplicación puede publicarse como un ejecutable autocontenible o ejecutarse

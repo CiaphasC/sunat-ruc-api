@@ -1,3 +1,4 @@
+// Analiza la página HTML devuelta por consultas de documento.
 namespace SunatScraper.Infrastructure.Services;
 using HtmlAgilityPack;
 using SunatScraper.Domain.Models;

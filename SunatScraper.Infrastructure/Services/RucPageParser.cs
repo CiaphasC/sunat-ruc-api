@@ -1,3 +1,4 @@
+// Analiza el HTML obtenido en las búsquedas por RUC.
 namespace SunatScraper.Infrastructure.Services;
 using HtmlAgilityPack;
 using SunatScraper.Domain.Models;

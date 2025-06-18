@@ -1,3 +1,4 @@
+// Facilita la elección del parser adecuado para cada tipo de consulta.
 namespace SunatScraper.Infrastructure.Services;
 using SunatScraper.Domain.Models;
 using System.Collections.Generic;
