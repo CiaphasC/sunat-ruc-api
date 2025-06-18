@@ -6,7 +6,8 @@ public sealed record RucInfo(
     string? Estado,
     string? Condicion,
     string? Direccion,
-    string? Ubicacion = null)
+    string? Ubicacion = null,
+    string? Documento = null)
 {
     public string ToJson() => JsonSerializer.Serialize(this,
         new JsonSerializerOptions { WriteIndented = true });

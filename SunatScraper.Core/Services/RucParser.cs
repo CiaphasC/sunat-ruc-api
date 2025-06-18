@@ -22,7 +22,7 @@ public static class RucParser
             map[key]=WebUtility.HtmlDecode(val?.InnerText.Trim()??"");
         }
         if(map.Count==0){
-            foreach(var node in doc.DocumentNode.SelectNodes("//*[contains(@class,'list-group-item')]") ?? Enumerable.Empty<HtmlNode>()){
+            foreach(var node in doc.DocumentNode.SelectNodes("//div[contains(@class,'list-group-item')]") ?? Enumerable.Empty<HtmlNode>()){
                 var text=WebUtility.HtmlDecode(node.InnerText.Trim());
                 int idx=text.IndexOf(':');
                 if(idx>0){
@@ -42,13 +42,21 @@ public static class RucParser
             }else ruc=rucLine;
         }
         razon=GetValue(map,"Razón") ?? GetValue(map,"Nombre") ?? razon;
+        var docLine=GetValue(map,"Tipo de Documento");
+        string? documento=null;
+        if(docLine!=null)
+        {
+            int dash=docLine.IndexOf('-');
+            documento=(dash>0?docLine[..dash]:docLine).Trim();
+        }
         return new RucInfo(
             ruc,
             razon,
             GetValue(map,"Estado"),
             GetValue(map,"Condición"),
             GetValue(map,"Dirección") ?? GetValue(map,"Domicilio"),
-            GetValue(map,"Ubicación"));
+            GetValue(map,"Ubicación"),
+            documento);
     }
 
     public static IEnumerable<SearchResultItem> ParseList(string html)
@@ -67,10 +75,19 @@ public static class RucParser
             var h4s=a.SelectNodes(".//h4");
             if(h4s!=null && h4s.Count>1)
                 razon=WebUtility.HtmlDecode(h4s[1].InnerText.Trim());
+            var text=WebUtility.HtmlDecode(a.InnerText);
             var ub=a.SelectSingleNode(".//p[contains(text(),'Ubicación')]");
             if(ub!=null) ubic=ub.InnerText.Split(':',2).Last().Trim();
+            else {
+                var mU=System.Text.RegularExpressions.Regex.Match(text,@"Ubicaci(?:\u00f3|o)n\s*:\s*([^\n]+)",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if(mU.Success) ubic=mU.Groups[1].Value.Trim();
+            }
             var st=a.SelectSingleNode(".//p[contains(text(),'Estado')]");
             if(st!=null) estado=st.InnerText.Split(':',2).Last().Trim();
+            else {
+                var mE=System.Text.RegularExpressions.Regex.Match(text,@"Estado\s*:\s*([^\n]+)",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if(mE.Success) estado=mE.Groups[1].Value.Trim();
+            }
             yield return new SearchResultItem(ruc,razon,ubic,estado);
         }
     }
