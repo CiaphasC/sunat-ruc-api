@@ -55,11 +55,17 @@ internal static class RucPageParser
         string? ubic = GetValue(map,"Ubicación");
         razon=GetValue(map,"Razón") ?? GetValue(map,"Nombre") ?? razon;
         var docLine=GetValue(map,"Tipo de Documento");
-        string? documento=null;
+        var contribLine=GetValue(map,"Tipo Contribuyente");
+        string? documento=null,contribuyente=null;
         if(docLine!=null)
         {
             int dash=docLine.IndexOf('-');
             documento=(dash>0?docLine[..dash]:docLine).Trim();
+        }
+        if(contribLine!=null)
+        {
+            int dash=contribLine.IndexOf('-');
+            contribuyente=(dash>0?contribLine[..dash]:contribLine).Trim();
         }
 
         // Fallback using regular expressions when values are missing
@@ -95,6 +101,16 @@ internal static class RucPageParser
                 documento=(dash>0?d[..dash]:d).Trim();
             }
         }
+        if(contribuyente==null)
+        {
+            var m=Regex.Match(plain,@"Tipo Contribuyente\s*:\s*([^\n]+)",RegexOptions.IgnoreCase);
+            if(m.Success)
+            {
+                var d=m.Groups[1].Value.Trim();
+                int dash=d.IndexOf('-');
+                contribuyente=(dash>0?d[..dash]:d).Trim();
+            }
+        }
 
         return new RucInfo(
             ruc,
@@ -103,7 +119,8 @@ internal static class RucPageParser
             condicion,
             direccion,
             ubic,
-            documento);
+            documento,
+            contribuyente);
     }
 
     internal static IEnumerable<SearchResultItem> ParseList(string html)
