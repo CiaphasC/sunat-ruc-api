@@ -19,11 +19,15 @@ internal static class RucPageParser
                 buf[idx++]=char.ToLowerInvariant(c);
         return new string(buf[..idx]);
     }
-    static string? GetValue(IDictionary<string,string> map,string label){
-        var normLabel=Normalize(label);
-        foreach(var (k,v) in map)
-            if(Normalize(k).Contains(normLabel))
+    static string? GetValue(IDictionary<string,string> map,string label)
+    {
+        var normLabel = Normalize(label);
+        foreach (var (k, v) in map)
+        {
+            if (k.Contains(label, StringComparison.OrdinalIgnoreCase) ||
+                Normalize(k).Contains(normLabel, StringComparison.OrdinalIgnoreCase))
                 return v;
+        }
         return null;
     }
     internal static RucInfo Parse(string html){
