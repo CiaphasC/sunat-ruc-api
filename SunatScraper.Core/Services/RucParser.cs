@@ -32,11 +32,21 @@ public static class RucParser
                 }
             }
         }
+        var rucLine=GetValue(map,"RUC");
+        string? ruc=null,razon=null;
+        if(rucLine!=null){
+            var m=System.Text.RegularExpressions.Regex.Match(rucLine,@"\d{11}");
+            if(m.Success){
+                ruc=m.Value;
+                razon=rucLine[(m.Index+m.Length)..].TrimStart('-',' ').Trim();
+            }else ruc=rucLine;
+        }
+        razon=GetValue(map,"Razón") ?? GetValue(map,"Nombre") ?? razon;
         return new RucInfo(
-            GetValue(map,"RUC"),
-            GetValue(map,"Razón") ?? GetValue(map,"Nombre"),
+            ruc,
+            razon,
             GetValue(map,"Estado"),
             GetValue(map,"Condición"),
-            GetValue(map,"Dirección"));
+            GetValue(map,"Dirección") ?? GetValue(map,"Domicilio"));
     }
 }
