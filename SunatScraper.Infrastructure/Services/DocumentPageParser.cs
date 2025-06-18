@@ -1,4 +1,6 @@
-// Analiza la página HTML devuelta por consultas de documento.
+/// <summary>
+/// Analiza la página HTML devuelta por consultas de documento.
+/// </summary>
 namespace SunatScraper.Infrastructure.Services;
 using HtmlAgilityPack;
 using SunatScraper.Domain.Models;
@@ -11,6 +13,9 @@ using System.Globalization;
 
 internal static class DocumentPageParser
 {
+    /// <summary>
+    /// Normaliza un texto para comparaciones sin acentos ni mayúsculas.
+    /// </summary>
     static string Normalize(string s)
     {
         var f = s.Normalize(NormalizationForm.FormD);
@@ -22,6 +27,9 @@ internal static class DocumentPageParser
         return new string(buf[..idx]);
     }
 
+    /// <summary>
+    /// Obtiene un valor del diccionario utilizando comparación tolerante.
+    /// </summary>
     static string? GetValue(IDictionary<string, string> map, string label)
     {
         var normLabel = Normalize(label);
@@ -34,6 +42,9 @@ internal static class DocumentPageParser
         return null;
     }
 
+    /// <summary>
+    /// Convierte el HTML en un <see cref="RucInfo"/>.
+    /// </summary>
     internal static RucInfo Parse(string html)
     {
         var doc = new HtmlDocument();
@@ -149,6 +160,9 @@ internal static class DocumentPageParser
             contribuyente);
     }
 
+    /// <summary>
+    /// Extrae una lista de resultados desde el HTML de búsqueda por documento.
+    /// </summary>
     internal static IEnumerable<SearchResultItem> ParseList(string html)
     {
         return RucPageParser.ParseList(html);

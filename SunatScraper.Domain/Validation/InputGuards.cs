@@ -2,10 +2,13 @@
 namespace SunatScraper.Domain.Validation;
 
 /// <summary>
-/// Helper methods to validate incoming parameters.
+/// Métodos auxiliares para validar los parámetros de entrada.
 /// </summary>
 public static class InputGuards
 {
+    /// <summary>
+    /// Valida que el tipo y número de documento cumplan con el formato esperado.
+    /// </summary>
     public static bool IsValidDocumento(string tipdoc, string num) => tipdoc switch
     {
         "1" => num.Length == 8 && num.All(char.IsDigit),
@@ -20,6 +23,9 @@ public static class InputGuards
 
     private static readonly int[] W = { 5, 4, 3, 2, 7, 6, 5, 4, 3, 2 };
 
+    /// <summary>
+    /// Comprueba la validez de un número de RUC.
+    /// </summary>
     public static bool IsValidRuc(string r) =>
         r.Length == 11 && r.All(char.IsDigit) && Chk(r) == r[^1] - '0';
 
@@ -33,6 +39,9 @@ public static class InputGuards
         return m == 10 ? 0 : m == 11 ? 1 : m;
     }
 
+    /// <summary>
+    /// Determina si el texto proporcionado cumple con las restricciones de búsqueda.
+    /// </summary>
     public static bool IsValidTexto(string t) =>
         t.Length is >= 4 and <= 100 &&
         t.All(c => char.IsLetterOrDigit(c) || c is ' ' or '.' or ',' or '-');

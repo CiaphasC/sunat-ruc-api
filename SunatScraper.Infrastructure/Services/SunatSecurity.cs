@@ -1,5 +1,7 @@
 #define USE_TESSERACT
-// Encapsula la lógica de seguridad y resolución de captcha utilizada por SUNAT.
+/// <summary>
+/// Encapsula la lógica de seguridad y resolución de captcha utilizada por SUNAT.
+/// </summary>
 namespace SunatScraper.Infrastructure.Services;
 
 using System.Net;
@@ -15,12 +17,15 @@ public class SunatSecurity
 
     public SunatSecurity(HttpClient httpClient) => _httpClient = httpClient;
 
+    /// <summary>
+    /// Genera un token pseudoaleatorio utilizado por el portal de SUNAT.
+    /// </summary>
     public string GenerateToken(int length = 52)
     {
         var sb = new StringBuilder(length);
         using var rng = RandomNumberGenerator.Create();
         Span<byte> buffer = stackalloc byte[8];
-        const string Alphabet = "0123456789ABCDEFGHIJKLMN"; // 24 chars
+        const string Alphabet = "0123456789ABCDEFGHIJKLMN"; // 24 caracteres permitidos
 
         while (sb.Length < length)
         {
@@ -36,7 +41,9 @@ public class SunatSecurity
         return sb.ToString(0, length);
     }
 
-    // Obtiene y resuelve el captcha; intenta Tesseract antes de recurrir a la entrada manual.
+    /// <summary>
+    /// Obtiene y resuelve el captcha; intenta Tesseract antes de recurrir a la entrada manual.
+    /// </summary>
     public async Task<string> SolveCaptchaAsync()
     {
         int rnd = Random.Shared.Next(1, 9999);
@@ -75,7 +82,7 @@ public class SunatSecurity
         }
         catch
         {
-            // fallback to manual captcha
+            // si falla el OCR se solicita el captcha manualmente
         }
 #endif
         var tmp = Path.GetTempFileName() + ".png";
