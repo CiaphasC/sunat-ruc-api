@@ -1,12 +1,17 @@
 # SUNAT RUC API 🚀🇵🇪
 
-Solución en C# .NET que expone una API minimalista para consultar datos del RUC directamente desde la web de SUNAT. El captcha se resuelve automáticamente para facilitar la integración en sistemas propios.
+> **Consulta inteligente del RUC desde .NET**
+
+Solución profesional en C# que expone una API ligera para consultar el padrón
+de la SUNAT. El captcha se resuelve de forma automática y la estructura está
+pensada para integrarse fácilmente en cualquier sistema.
 
 ## ✨ Características
-- 🔍 Búsqueda por número de RUC, documento o razón social.
-- ✅ Captcha resuelto en segundo plano.
-- 🔧 Endpoints HTTP y servicio gRPC opcional.
-- 🛡️ Cache en memoria y soporte para Redis.
+- 🔍 **Búsqueda completa** por número de RUC, documento o razón social.
+- 🤖 **Captcha automático** resuelto en segundo plano.
+- 🌐 **Endpoints HTTP** y servicio **gRPC** opcional.
+- 🛡️ **Cache** en memoria y soporte para **Redis**.
+- 📄 **Documentación** y ejemplos listos para usar.
 
 ## 🛠️ Requisitos
 - .NET SDK 9.0 o superior
@@ -24,6 +29,7 @@ La API quedará disponible en `http://localhost:5000/`.
 - `GET /ruc/{ruc}` – Consulta por número de RUC.
 - `GET /doc/{tipo}/{numero}` – Búsqueda por tipo y número de documento.
 - `GET /doc/{tipo}/{numero}/lista` – Devuelve la "Relación de contribuyentes" para el documento indicado.
+- `GET /rs/lista?q={razon social}` – Lista de resultados por razón social.
 - `GET /rs?q={razon social}` – Búsqueda por nombre o razón social.
 
 ## 💻 Ejemplos de uso
@@ -53,6 +59,11 @@ curl http://localhost:5000/doc/A/CD12345
 curl http://localhost:5000/doc/1/73870570/lista
 ```
 
+### Obtener lista de resultados por razón social
+```bash
+curl "http://localhost:5000/rs/lista?q=ACME"
+```
+
 ### Búsqueda por razón social
 ```bash
 curl "http://localhost:5000/rs?q=ACME"
@@ -74,41 +85,64 @@ grpcurl -d '{"ruc":"20100113774"}' -plaintext localhost:5000 Sunat/GetByRuc
 ```
 
 ## 📄 Arquitectura
-El proyecto se divide en tres componentes principales:
-- **SunatScraper.Core** – Librería de dominio. Contiene la lógica de scraping, validación de entradas, resolución de captcha y la clase `SunatClient` que centraliza el acceso a SUNAT.
-- **SunatScraper.Api** – Capa de presentación HTTP basada en Minimal API que publica los endpoints REST y configura las dependencias.
-- **SunatScraper.Grpc** – Servicio gRPC opcional para escenarios donde se requiera comunicación binaria.
+El proyecto se compone de tres módulos bien definidos:
+- **SunatScraper.Core** – Librería de dominio. Gestiona la lógica de scraping, la validación de entradas, la resolución de captchas y concentra el acceso a la página de SUNAT.
+- **SunatScraper.Api** – Capa de presentación HTTP basada en Minimal API. Expone los endpoints REST y configura las dependencias necesarias.
+- **SunatScraper.Grpc** – Servicio gRPC opcional pensado para escenarios de alto rendimiento o integración entre microservicios.
 
-### Arquitectura utilizada
-Se adopta una **arquitectura en capas** donde el núcleo de negocio se mantiene aislado en `SunatScraper.Core`. Las capas superiores consumen esta librería a través de *inyección de dependencias*, permitiendo cambiar el mecanismo de exposición (REST o gRPC) sin modificar el código del dominio.
+### Diagrama general
 
-### Patrones de diseño
+```mermaid
+graph TD;
+    C[Cliente 🌐] --> A[API REST 🚀];
+    A --> B[SunatScraper.Core 🧐];
+    A --> D[Cache ⚡];
+    B --> E[SUNAT 🇵🇪];
+```
+
+### Principios arquitectónicos
+Se adopta una **arquitectura en capas**. El núcleo de negocio se mantiene aislado en `SunatScraper.Core`, mientras que las capas de presentación consumen dicha librería a través de *inyección de dependencias*. Esto permite cambiar el mecanismo de exposición (REST o gRPC) sin tocar la lógica central y facilita las pruebas unitarias.
+
+Cada capa se comunica mediante interfaces bien definidas, lo que posibilita
+reemplazar componentes (por ejemplo, el sistema de cache o el cliente HTTP)
+según las necesidades del entorno. De esta forma, la solución puede desplegarse
+como un microservicio independiente o integrarse en una aplicación mayor.
+
+#### Flujo de datos
+1. El cliente envía una petición REST o gRPC.
+2. La capa de API valida los parámetros y delega la consulta al `SunatScraper.Core`.
+3. El servicio central se comunica con el portal de SUNAT y almacena temporalmente el resultado en la cache.
+4. La respuesta se devuelve al cliente en el formato solicitado.
+
+#### Patrones de diseño
 - **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y las opciones de caché.
 - **Dependency Injection** para registrar servicios y mantener bajo acoplamiento.
-- **Caching** en memoria y opcionalmente en Redis para optimizar consultas repetitivas.
+- **Caching** en memoria o Redis para optimizar las consultas repetitivas.
 
 ### ¿Por qué C# .NET?
 C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime
 de .NET. Su compilación JIT y las optimizaciones del CLR permiten obtener un
 alto rendimiento en aplicaciones de red sin sacrificar la legibilidad del
-código. Además, .NET es completamente multiplataforma, por lo que la API puede
-ejecutarse tanto en Windows como en Linux sin modificaciones.
+código. Además, .NET es totalmente multiplataforma: la API puede desplegarse en
+Windows, Linux o contenedores Docker sin modificaciones.
 
 La biblioteca estándar ofrece utilidades listas para usar en escenarios de
-procesamiento de HTTP, serialización de JSON y manipulación de HTML, pilares
-fundamentales de este proyecto. Las facilidades de programación asíncrona con
-`async`/`await` simplifican la implementación de clientes web concurrentes y de
-servidores de alto rendimiento.
+procesamiento de HTTP, serialización de JSON y manipulación de HTML,
+pilares fundamentales de este proyecto. Las facilidades de programación
+asíncrona con `async`/`await` simplifican la implementación de clientes web
+concurrentes y de servidores de alto rendimiento.
 
 El amplio ecosistema de .NET incluye frameworks integrados para exponer
 endpoints REST y servicios gRPC, permitiendo reutilizar la misma lógica de
-negocio en diferentes formas de comunicación. Gracias a la inyección de
+negocio en distintas formas de comunicación. Gracias a la inyección de
 dependencias nativa es sencillo mantener las capas desacopladas y preparar el
-código para pruebas automatizadas.
+código para pruebas automatizadas, facilitando así la mantenibilidad a largo
+plazo.
 
-Otro punto a favor es la facilidad de despliegue. La aplicación puede publicarse
-como un ejecutable autocontenible o dentro de un contenedor Docker, garantizando
-portabilidad y un proceso de instalación trivial.
+### Despliegue
+La aplicación puede publicarse como un ejecutable autocontenible o ejecutarse
+dentro de un contenedor Docker, garantizando portabilidad y un proceso de
+instalación trivial tanto en entornos de desarrollo como de producción.
 
 En conjunto, C# .NET brinda un balance entre rendimiento, productividad y un
 ecosistema maduro. Estas características lo hacen idóneo para implementar la

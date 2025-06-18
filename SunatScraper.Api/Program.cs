@@ -15,5 +15,6 @@ app.MapGet("/",()=> "SUNAT RUC API ok");
 app.MapGet("/ruc/{r}",async([FromServices]SunatClient s,string r)=>Results.Json(await s.ByRucAsync(r)));
 app.MapGet("/doc/{t}/{n}",async([FromServices]SunatClient s,string t,string n)=>Results.Json(await s.ByDocumentoAsync(t,n)));
 app.MapGet("/doc/{t}/{n}/lista",async([FromServices]SunatClient s,string t,string n)=>Results.Json(await s.SearchDocumentoAsync(t,n)));
+app.MapGet("/rs/lista",async([FromServices]SunatClient s,[FromQuery]string q)=>Results.Json(await s.SearchRazonAsync(q)));
 app.MapGet("/rs",async([FromServices]SunatClient s,[FromQuery]string q)=>Results.Json(await s.ByRazonAsync(q)));
 app.Run();
