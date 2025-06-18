@@ -4,6 +4,7 @@ using SunatScraper.Core.Models;
 using System.Net;
 using System.Linq;
 using System;
+using System.Text.RegularExpressions;
 
 internal static class RucPageParser
 {
@@ -35,13 +36,23 @@ internal static class RucPageParser
         }
         var rucLine=GetValue(map,"RUC");
         string? ruc=null,razon=null;
-        if(rucLine!=null){
-            var m=System.Text.RegularExpressions.Regex.Match(rucLine,@"\d{11}");
-            if(m.Success){
+        if(rucLine!=null)
+        {
+            var m=Regex.Match(rucLine,@"\d{11}");
+            if(m.Success)
+            {
                 ruc=m.Value;
-                razon=rucLine[(m.Index+m.Length)..].TrimStart('-',' ').Trim();
-            }else ruc=rucLine;
+                var after=rucLine[(m.Index+m.Length)..].Trim();
+                if(after.StartsWith("-")) after=after[1..].Trim();
+                razon=after.Length>0?after:null;
+            }
+            else ruc=rucLine.Trim();
         }
+
+        string? estado = GetValue(map,"Estado");
+        string? condicion = GetValue(map,"Condición");
+        string? direccion = GetValue(map,"Dirección") ?? GetValue(map,"Domicilio");
+        string? ubic = GetValue(map,"Ubicación");
         razon=GetValue(map,"Razón") ?? GetValue(map,"Nombre") ?? razon;
         var docLine=GetValue(map,"Tipo de Documento");
         string? documento=null;
@@ -50,13 +61,48 @@ internal static class RucPageParser
             int dash=docLine.IndexOf('-');
             documento=(dash>0?docLine[..dash]:docLine).Trim();
         }
+
+        // Fallback using regular expressions when values are missing
+        var plain = WebUtility.HtmlDecode(doc.DocumentNode.InnerText);
+        if(string.IsNullOrWhiteSpace(ruc))
+        {
+            var m=Regex.Match(plain,@"\b(\d{11})\b");
+            if(m.Success) ruc=m.Groups[1].Value;
+        }
+        if(string.IsNullOrWhiteSpace(razon) || razon=="-")
+        {
+            var m=Regex.Match(plain,@"\b\d{11}\s*-\s*([^\n]+)");
+            if(m.Success) razon=m.Groups[1].Value.Trim();
+        }
+        estado ??= Regex.Match(plain,@"Estado\s*:\s*([^\n]+)",RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+        if(string.IsNullOrWhiteSpace(estado)) estado=null;
+        condicion ??= Regex.Match(plain,@"Condici(?:\u00f3|o)n\s*:\s*([^\n]+)",RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+        if(string.IsNullOrWhiteSpace(condicion)) condicion=null;
+        if(string.IsNullOrWhiteSpace(direccion))
+        {
+            var m=Regex.Match(plain,@"Direcci(?:\u00f3|o)n\s*:\s*([^\n]+)",RegexOptions.IgnoreCase);
+            if(m.Success) direccion=m.Groups[1].Value.Trim();
+        }
+        ubic ??= Regex.Match(plain,@"Ubicaci(?:\u00f3|o)n\s*:\s*([^\n]+)",RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+        if(string.IsNullOrWhiteSpace(ubic)) ubic=null;
+        if(documento==null)
+        {
+            var m=Regex.Match(plain,@"Tipo de Documento\s*:\s*([^\n]+)",RegexOptions.IgnoreCase);
+            if(m.Success)
+            {
+                var d=m.Groups[1].Value.Trim();
+                int dash=d.IndexOf('-');
+                documento=(dash>0?d[..dash]:d).Trim();
+            }
+        }
+
         return new RucInfo(
             ruc,
             razon,
-            GetValue(map,"Estado"),
-            GetValue(map,"Condición"),
-            GetValue(map,"Dirección") ?? GetValue(map,"Domicilio"),
-            GetValue(map,"Ubicación"),
+            estado,
+            condicion,
+            direccion,
+            ubic,
             documento);
     }
 
