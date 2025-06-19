@@ -43,7 +43,9 @@ internal static class DocumentHtmlParser
     }
 
     /// <summary>
-    /// Convierte el HTML en un <see cref="RucInfo"/>.
+    /// Convierte el HTML en un <see cref="RucInfo"/>. Se basa en la estructura
+    /// actual del portal de SUNAT, por lo que cambios en el marcado podrían
+    /// requerir ajustes en los selectores y expresiones regulares.
     /// </summary>
     internal static RucInfo Parse(string html)
     {

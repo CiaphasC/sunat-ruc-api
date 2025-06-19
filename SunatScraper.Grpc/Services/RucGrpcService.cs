@@ -16,7 +16,7 @@ public class RucGrpcService : Sunat.SunatBase
     /// Retorna la información correspondiente al RUC indicado.
     /// </summary>
     public override async Task<RucReply> GetByRuc(RucRequest request, ServerCallContext _) =>
-        Map(await _client.ByRucAsync(request.Ruc));
+        Map(await _client.GetByRucAsync(request.Ruc));
 
     /// <summary>
     /// Transforma el modelo de dominio en la respuesta gRPC.

@@ -42,6 +42,10 @@ internal static class RucHtmlParser
     }
     /// <summary>
     /// Extrae la información detallada de un RUC desde el HTML proporcionado.
+    /// Este método asume la estructura actual del portal de SUNAT, basada en
+    /// celdas con la clase <c>bgn</c> o bloques <c>list-group-item</c>. Si el
+    /// marcado cambia, será necesario actualizar los selectores y expresiones
+    /// regulares utilizados.
     /// </summary>
     internal static RucInfo Parse(string html)
     {
