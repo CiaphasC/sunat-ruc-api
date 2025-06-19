@@ -15,7 +15,7 @@ using System.Text.Json;
 /// <summary>
 /// Implementación de <see cref="ISunatClient"/> basada en <see cref="HttpClient"/>.
 /// </summary>
-public sealed class SunatClient : ISunatClient
+public sealed class SunatClient : ISunatClient, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly CaptchaSolver _security;
@@ -66,22 +66,22 @@ public sealed class SunatClient : ISunatClient
     /// <summary>
     /// Obtiene la información correspondiente a un RUC.
     /// </summary>
-    public Task<RucInfo> ByRucAsync(string ruc) =>
+    public Task<RucInfo> GetByRucAsync(string ruc) =>
         SendAsync("consPorRuc", ("nroRuc", ruc));
 
     /// <summary>
     /// Realiza la búsqueda de contribuyente por tipo y número de documento.
     /// </summary>
-    public async Task<RucInfo> ByDocumentoAsync(string tipo, string numero)
+    public async Task<RucInfo> GetByDocumentAsync(string tipo, string numero)
     {
         if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
 
         var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
-        var list = RucParser.ParseList(html, true).ToList();
+        var results = RucParser.ParseList(html, true).ToList();
 
-        if (list.Count > 0 && !string.IsNullOrWhiteSpace(list[0].Ruc))
-            return await ByRucAsync(list[0].Ruc!);
+        if (results.Count > 0 && !string.IsNullOrWhiteSpace(results[0].Ruc))
+            return await GetByRucAsync(results[0].Ruc!);
 
         return RucParser.Parse(html, true);
     }
@@ -89,7 +89,7 @@ public sealed class SunatClient : ISunatClient
     /// <summary>
     /// Devuelve el listado de contribuyentes asociados a un documento.
     /// </summary>
-    public async Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string tipo, string numero)
+    public async Task<IReadOnlyList<SearchResultItem>> SearchByDocumentAsync(string tipo, string numero)
     {
         if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
@@ -101,7 +101,7 @@ public sealed class SunatClient : ISunatClient
     /// <summary>
     /// Obtiene coincidencias a partir de la razón social.
     /// </summary>
-    public async Task<IReadOnlyList<SearchResultItem>> SearchRazonAsync(string query)
+    public async Task<IReadOnlyList<SearchResultItem>> SearchByNameAsync(string query)
     {
         if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
@@ -113,19 +113,19 @@ public sealed class SunatClient : ISunatClient
     /// <summary>
     /// Devuelve la información de la primera coincidencia por razón social.
     /// </summary>
-    public async Task<RucInfo> ByRazonAsync(string query)
+    public async Task<RucInfo> GetByNameAsync(string query)
     {
         if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
 
         var html = await SendRawAsync("consPorRazonSoc", ("razSoc", query));
-        var list = RucParser.ParseList(html).ToList();
-        string? ubicacion = list.Count > 0 ? list[0].Ubicacion : null;
+        var results = RucParser.ParseList(html).ToList();
+        string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
-        if (list.Count > 0 && !string.IsNullOrWhiteSpace(list[0].Ruc))
+        if (results.Count > 0 && !string.IsNullOrWhiteSpace(results[0].Ruc))
         {
-            var info = await ByRucAsync(list[0].Ruc!);
-            return !string.IsNullOrWhiteSpace(ubicacion) ? info with { Ubicacion = ubicacion } : info;
+            var details = await GetByRucAsync(results[0].Ruc!);
+            return !string.IsNullOrWhiteSpace(ubicacion) ? details with { Ubicacion = ubicacion } : details;
         }
 
         var parsed = RucParser.Parse(html);
@@ -194,7 +194,16 @@ public sealed class SunatClient : ISunatClient
     private async Task<RucInfo> SendAsync(string accion, params (string k, string v)[] extras)
     {
         var html = await SendRawAsync(accion, extras);
-        var info = RucParser.Parse(html, accion == "consPorTipdoc");
-        return info;
+        var parsedInfo = RucParser.Parse(html, accion == "consPorTipdoc");
+        return parsedInfo;
+    }
+
+    /// <summary>
+    /// Libera los recursos utilizados por el cliente HTTP y la memoria caché.
+    /// </summary>
+    public void Dispose()
+    {
+        _httpClient.Dispose();
+        _memoryCache.Dispose();
     }
 }
