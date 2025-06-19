@@ -18,7 +18,7 @@ using System.Text.Json;
 public sealed class SunatClient : ISunatClient
 {
     private readonly HttpClient _httpClient;
-    private readonly SunatSecurity _security;
+    private readonly CaptchaSolver _security;
     private readonly IMemoryCache _memoryCache;
     private readonly IDatabase? _redisDatabase;
     private readonly CookieContainer _cookieJar;
@@ -29,7 +29,7 @@ public sealed class SunatClient : ISunatClient
         _memoryCache = memoryCache;
         _redisDatabase = redisDatabase;
         _cookieJar = cookieJar;
-        _security = new SunatSecurity(httpClient);
+        _security = new CaptchaSolver(httpClient);
 
         Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
     }
@@ -74,7 +74,7 @@ public sealed class SunatClient : ISunatClient
     /// </summary>
     public async Task<RucInfo> ByDocumentoAsync(string tipo, string numero)
     {
-        if (!InputGuards.IsValidDocumento(tipo, numero))
+        if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
 
         var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
@@ -91,7 +91,7 @@ public sealed class SunatClient : ISunatClient
     /// </summary>
     public async Task<IReadOnlyList<SearchResultItem>> SearchDocumentoAsync(string tipo, string numero)
     {
-        if (!InputGuards.IsValidDocumento(tipo, numero))
+        if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
 
         var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
@@ -103,7 +103,7 @@ public sealed class SunatClient : ISunatClient
     /// </summary>
     public async Task<IReadOnlyList<SearchResultItem>> SearchRazonAsync(string query)
     {
-        if (!InputGuards.IsValidTexto(query))
+        if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
 
         var html = await SendRawAsync("consPorRazonSoc", ("razSoc", query));
@@ -115,7 +115,7 @@ public sealed class SunatClient : ISunatClient
     /// </summary>
     public async Task<RucInfo> ByRazonAsync(string query)
     {
-        if (!InputGuards.IsValidTexto(query))
+        if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
 
         var html = await SendRawAsync("consPorRazonSoc", ("razSoc", query));

@@ -11,7 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 
-internal static class RucPageParser
+internal static class RucHtmlParser
 {
     /// <summary>
     /// Normaliza un texto eliminando signos diacríticos y convirtiéndolo a minúsculas.

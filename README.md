@@ -205,7 +205,7 @@ solución de consulta de RUC que expone esta API.
 ├── SunatScraper.Grpc
 │   ├── Services
 │   ├── SunatScraper.Grpc.csproj
-│   └── sunat.proto
+│   └── SunatService.proto
 ```
 
 ## ⚠️ Advertencia

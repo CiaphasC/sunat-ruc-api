@@ -14,7 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SunatScraper.Domain\SunatScraper.Domain.csproj" />
-    <Protobuf Include="sunat.proto" GrpcServices="Server"/>
+    <Protobuf Include="SunatService.proto" GrpcServices="Server"/>
   </ItemGroup>
 </Project>
 

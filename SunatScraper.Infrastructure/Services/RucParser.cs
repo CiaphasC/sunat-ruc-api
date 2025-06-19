@@ -12,7 +12,7 @@ public static class RucParser
     /// </summary>
     public static RucInfo Parse(string html, bool porDocumento = false)
     {
-        return porDocumento ? DocumentPageParser.Parse(html) : RucPageParser.Parse(html);
+        return porDocumento ? DocumentHtmlParser.Parse(html) : RucHtmlParser.Parse(html);
     }
 
     /// <summary>
@@ -20,6 +20,6 @@ public static class RucParser
     /// </summary>
     public static IEnumerable<SearchResultItem> ParseList(string html, bool porDocumento = false)
     {
-        return porDocumento ? DocumentPageParser.ParseList(html) : RucPageParser.ParseList(html);
+        return porDocumento ? DocumentHtmlParser.ParseList(html) : RucHtmlParser.ParseList(html);
     }
 }
