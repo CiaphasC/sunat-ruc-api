@@ -163,9 +163,53 @@ graph TD;
 #### Patrones de diseño
 - 🏭 **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y la caché.
 - 🧩 **Dependency Injection** para registrar servicios y mantener bajo acoplamiento.
+- 📚 **Repository** mediante la interfaz `ISunatClient` que abstrae las consultas al portal y permite reutilizar la lógica en REST y gRPC.
+- 🔌 **Adapter**: `SunatClient` implementa dicha interfaz, pudiendo reemplazarse por mocks o variantes según el contexto.
 - ⚡ **Caching** en memoria o Redis para optimizar las consultas repetitivas.
 
+### Implementación de patrones en C# .NET
+
+El método `SunatClient.Create()` actúa como **fábrica** al construir y configurar
+las dependencias necesarias (`HttpClient`, `MemoryCache` y opcionalmente
+`Redis`). Esta instancia se registra mediante inyección de dependencias en
+`Program.cs`, de modo que la API REST y el servicio gRPC obtengan un
+`ISunatClient` listo para usar.
+
+`ISunatClient` funciona como **repositorio**: reúne todas las operaciones de
+consulta al padrón en una única interfaz, manteniendo la lógica de acceso remoto
+separada del resto del dominio.
+
+`SunatClient` implementa esa interfaz y sirve de **adaptador** entre las
+llamadas de alto nivel y las peticiones HTTP al portal de SUNAT. Esto permite
+intercambiar la implementación por un mock en pruebas o por otra fuente de datos
+en caso de que el portal cambie.
+
+```mermaid
+classDiagram
+    direction LR
+    class SunatService
+    class ISunatClient
+    class SunatClient
+    class HttpClient
+    class CaptchaSolver
+    class MemoryCache
+    class RedisDatabase
+
+    SunatService --> ISunatClient : depende
+    SunatClient ..|> ISunatClient
+    SunatClient --> HttpClient
+    SunatClient --> CaptchaSolver
+    SunatClient --> MemoryCache
+    SunatClient --> RedisDatabase : opcional
+```
+
 ### ¿Por qué C# .NET?
+
+El ecosistema .NET proporciona soporte directo para la inyección de
+dependencias y para la programación asíncrona con `Task`, lo que simplifica la
+implementación de patrones como los mencionados anteriormente. Las clases
+genéricas y los contenedores de inversión de control permiten reutilizar los
+componentes en distintos proyectos sin cambios.
 
 > C# es un lenguaje moderno y fuertemente tipado que se ejecuta sobre el runtime de .NET. Su compilación JIT y las optimizaciones del CLR permiten obtener un alto rendimiento en aplicaciones de red sin sacrificar la legibilidad del código. Además, .NET es completamente multiplataforma: la API puede desplegarse en Windows, Linux o contenedores Docker sin modificaciones.
 >
@@ -211,3 +255,14 @@ solución de consulta de RUC que expone esta API.
 ## ⚠️ Advertencia
 El portal de SUNAT puede cambiar o tener restricciones de acceso. Este código se comparte con fines educativos y debe usarse respetando los términos de SUNAT.
 
+
+## 🔘 Solución a error "Captcha request failed: 401 Unauthorized"
+Si al realizar una consulta la API muestra `Captcha request failed: 401 Unauthorized`, revisa lo siguiente:
+
+1. Usa la última versión del proyecto. La clase `CaptchaSolver` simula un navegador real estableciendo `User-Agent`, `Referer`, `Accept` y `Accept-Language`. También incluye el valor aleatorio `nmagic`/`numRnd` que SUNAT valida para permitir la descarga.
+2. Previamente se debe cargar la página `FrameCriterioBusquedaWeb.jsp` para obtener las cookies de sesión. El método `SunatClient.SendRawAsync` ya realiza esta petición antes de solicitar el captcha.
+3. Verifica que tu conexión permita acceder a `e-consultaruc.sunat.gob.pe`; un cortafuego o proxy podría bloquear la descarga del captcha o descartar las cookies.
+4. Asegúrate de tener instalado Tesseract OCR para que el captcha se resuelva automáticamente. Si Tesseract no está disponible se solicitará ingresarlo manualmente.
+5. A partir de la versión actual la clase `CaptchaSolver` detecta los códigos `401 Unauthorized` y `404 Not Found` devolviendo un captcha vacío cuando SUNAT lo omite, evitando que se genere una excepción.
+
+Tras comprobar estos puntos la API debería responder correctamente a las consultas `/ruc/{ruc}`.
