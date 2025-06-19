@@ -211,4 +211,3 @@ solución de consulta de RUC que expone esta API.
 ## ⚠️ Advertencia
 El portal de SUNAT puede cambiar o tener restricciones de acceso. Este código se comparte con fines educativos y debe usarse respetando los términos de SUNAT.
 
-## 🔘 Solución a error "Captcha request failed: 401 Unauthorized"
