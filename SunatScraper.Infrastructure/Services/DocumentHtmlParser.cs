@@ -11,7 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 
-internal static class DocumentPageParser
+internal static class DocumentHtmlParser
 {
     /// <summary>
     /// Normaliza un texto para comparaciones sin acentos ni mayúsculas.
@@ -165,6 +165,6 @@ internal static class DocumentPageParser
     /// </summary>
     internal static IEnumerable<SearchResultItem> ParseList(string html)
     {
-        return RucPageParser.ParseList(html);
+        return RucHtmlParser.ParseList(html);
     }
 }

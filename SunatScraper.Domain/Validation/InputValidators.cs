@@ -4,7 +4,7 @@ namespace SunatScraper.Domain.Validation;
 /// <summary>
 /// Métodos auxiliares para validar los parámetros de entrada.
 /// </summary>
-public static class InputGuards
+public static class InputValidators
 {
     /// <summary>
     /// Valida que el tipo y número de documento cumplan con el formato esperado.

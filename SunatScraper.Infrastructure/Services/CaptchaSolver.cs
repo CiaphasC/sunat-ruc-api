@@ -9,13 +9,13 @@ using System.Security.Cryptography;
 using System.Text;
 using Tesseract;
 
-public class SunatSecurity
+public class CaptchaSolver
 {
     private readonly HttpClient _httpClient;
 
     public int LastRandom { get; private set; }
 
-    public SunatSecurity(HttpClient httpClient) => _httpClient = httpClient;
+    public CaptchaSolver(HttpClient httpClient) => _httpClient = httpClient;
 
     /// <summary>
     /// Genera un token pseudoaleatorio utilizado por el portal de SUNAT.
