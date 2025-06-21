@@ -111,7 +111,10 @@ public class CaptchaSolver : IDisposable
         var png = await res.Content.ReadAsByteArrayAsync();
 #endif
         var tmp = Path.GetTempFileName() + ".png";
-        await File.WriteAllBytesAsync(tmp, png);
+        await using (var fs = File.Create(tmp))
+        {
+            await fs.WriteAsync(png);
+        }
         Console.Write($"Captcha manual ({tmp}): ");
         var text = Console.ReadLine()!.Trim().ToUpper();
         try
