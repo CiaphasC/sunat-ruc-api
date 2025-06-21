@@ -22,29 +22,36 @@ var app = builder.Build();
 app.MapGet("/", () => "SUNAT RUC API ok");
 
 // Consulta información detallada mediante número de RUC.
-app.MapGet("/ruc/{ruc}", async ([FromServices] ISunatClient client, string ruc) =>
-    Results.Json(await client.GetByRucAsync(ruc)));
+app.MapGet("/ruc/{ruc}",
+    ([FromServices] ISunatClient client, string ruc) =>
+        ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.GetByRucAsync(ruc))));
 
 // Consulta múltiples RUCs en paralelo.
-app.MapGet("/rucs", async ([FromServices] ISunatClient client,
+app.MapGet("/rucs",
+    ([FromServices] ISunatClient client,
         [FromQuery(Name = "r")] string[] rucs) =>
-    Results.Json(await client.GetByRucsAsync(rucs)));
+        ApiHelpers.Execute(async () => Results.Json(await client.GetByRucsAsync(rucs))));
 
 // Búsqueda por tipo y número de documento de identidad.
-app.MapGet("/doc/{tipo}/{numero}", async ([FromServices] ISunatClient client, string tipo, string numero) =>
-    Results.Json(await client.GetByDocumentAsync(tipo, numero)));
+app.MapGet("/doc/{tipo}/{numero}",
+    ([FromServices] ISunatClient client, string tipo, string numero) =>
+        ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.GetByDocumentAsync(tipo, numero))));
 
 // Devuelve la lista completa de coincidencias para un documento específico.
-app.MapGet("/doc/{tipo}/{numero}/lista", async ([FromServices] ISunatClient client, string tipo, string numero) =>
-    Results.Json(await client.SearchByDocumentAsync(tipo, numero)));
+app.MapGet("/doc/{tipo}/{numero}/lista",
+    ([FromServices] ISunatClient client, string tipo, string numero) =>
+        ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.SearchByDocumentAsync(tipo, numero))));
 
 // Obtiene las coincidencias de razón social sin datos de ubicación.
-app.MapGet("/rs/lista", async ([FromServices] ISunatClient client,
+app.MapGet("/rs/lista",
+    ([FromServices] ISunatClient client,
         [FromQuery(Name = "q")] string razonSocial) =>
-    Results.Json(await client.SearchByNameAsync(razonSocial)));
+        ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.SearchByNameAsync(razonSocial))));
 
 // Consulta por razón social retornando ubicación cuando está disponible.
-app.MapGet("/rs", async ([FromServices] ISunatClient client,
+app.MapGet("/rs",
+    ([FromServices] ISunatClient client,
         [FromQuery(Name = "q")] string razonSocial) =>
-    Results.Json(await client.GetByNameAsync(razonSocial)));
+        ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.GetByNameAsync(razonSocial))));
+
 app.Run();
