@@ -169,18 +169,18 @@ graph TD;
 > Todas las operaciones son `async` y algunas consultas se ejecutan en paralelo
 > para aprovechar al máximo los recursos de la aplicación.
 
-```markmap
-# Principios
-## Capas
-### API / gRPC
-### Dominio
-### Infraestructura
-## Patrones
-### DI
-### Repository
-### Adapter
-### Factory
-### Caching
+```mermaid
+graph TD;
+    A[Principios] --> B[Capas];
+    B --> B1[API / gRPC];
+    B --> B2[Dominio];
+    B --> B3[Infraestructura];
+    A --> C[Patrones];
+    C --> C1[DI];
+    C --> C2[Repository];
+    C --> C3[Adapter];
+    C --> C4[Factory];
+    C --> C5[Caching];
 ```
 
 #### Flujo de datos

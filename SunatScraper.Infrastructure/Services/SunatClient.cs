@@ -94,11 +94,20 @@ public sealed class SunatClient : ISunatClient, IDisposable
 
         var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
         var results = RucParser.ParseList(html, true).ToList();
+        string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
         if (results.Count > 0 && !string.IsNullOrWhiteSpace(results[0].Ruc))
-            return await GetByRucAsync(results[0].Ruc!);
+        {
+            var details = await GetByRucAsync(results[0].Ruc!);
+            return !string.IsNullOrWhiteSpace(ubicacion)
+                ? details with { Ubicacion = ubicacion }
+                : details;
+        }
 
-        return RucParser.Parse(html, true);
+        var parsed = RucParser.Parse(html, true);
+        return !string.IsNullOrWhiteSpace(ubicacion)
+            ? parsed with { Ubicacion = ubicacion }
+            : parsed;
     }
 
     /// <summary>
