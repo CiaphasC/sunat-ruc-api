@@ -25,6 +25,11 @@ app.MapGet("/", () => "SUNAT RUC API ok");
 app.MapGet("/ruc/{ruc}", async ([FromServices] ISunatClient client, string ruc) =>
     Results.Json(await client.GetByRucAsync(ruc)));
 
+// Consulta múltiples RUCs en paralelo.
+app.MapGet("/rucs", async ([FromServices] ISunatClient client,
+        [FromQuery(Name = "r")] string[] rucs) =>
+    Results.Json(await client.GetByRucsAsync(rucs)));
+
 // Búsqueda por tipo y número de documento de identidad.
 app.MapGet("/doc/{tipo}/{numero}", async ([FromServices] ISunatClient client, string tipo, string numero) =>
     Results.Json(await client.GetByDocumentAsync(tipo, numero)));

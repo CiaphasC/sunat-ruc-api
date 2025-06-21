@@ -11,6 +11,7 @@ pensada para integrarse fácilmente en cualquier sistema.
 - 🤖 **Captcha automático** resuelto en segundo plano.
 - 🌐 **Endpoints HTTP** y servicio **gRPC** opcional.
 - 🛡️ **Cache** en memoria y soporte para **Redis**.
+- 💥 **Consulta múltiple** de RUCs en paralelo con `Task.WhenAll`.
 - 📄 **Documentación** y ejemplos listos para usar.
 
 ## 🛠️ Requisitos
@@ -30,6 +31,7 @@ La API quedará disponible en `http://localhost:5000/`.
 |--------|----------|-------------|
 | `GET`  | `/` | Comprobación de funcionamiento |
 | `GET`  | `/ruc/{ruc}` | Consulta por número de RUC |
+| `GET`  | `/rucs?r={ruc}` | Consulta varios RUCs en paralelo |
 | `GET`  | `/doc/{tipo}/{numero}` | Búsqueda por tipo y número de documento |
 | `GET`  | `/doc/{tipo}/{numero}/lista` | Devuelve la "Relación de contribuyentes" para el documento indicado |
 | `GET`  | `/rs/lista?q={razon social}` | Lista de resultados por razón social |
@@ -42,6 +44,14 @@ La API quedará disponible en `http://localhost:5000/`.
 
 ```bash
 curl http://localhost:5000/ruc/20100113774
+```
+</details>
+
+<details>
+<summary>Consulta múltiple de RUCs</summary>
+
+```bash
+curl "http://localhost:5000/rucs?r=20100113774&r=20600055576"
 ```
 </details>
 
@@ -127,7 +137,7 @@ grpcurl -d '{"ruc":"20100113774"}' -plaintext localhost:5000 Sunat/GetByRuc
 </details>
 
 ## 📄 Arquitectura
-El proyecto se compone de tres módulos bien definidos:
+El proyecto se compone de cuatro módulos bien definidos:
 - **SunatScraper.Domain** – Librería de dominio. Gestiona la lógica de scraping, la validación de entradas, la resolución de captchas y concentra el acceso a la página de SUNAT.
 - **SunatScraper.Infrastructure** – Implementación del cliente HTTP y la caché.
 - **SunatScraper.Api** – Capa de presentación HTTP basada en Minimal API. Expone los endpoints REST y configura las dependencias necesarias.
@@ -138,7 +148,9 @@ El proyecto se compone de tres módulos bien definidos:
 ```mermaid
 graph TD;
     C[Cliente 🌐] --> A[API REST 🚀];
+    C --> G[gRPC 🤝];
     A --> B[SunatScraper.Domain 🧐];
+    G --> B;
     A --> D[Cache ⚡];
     B --> E[SUNAT 🇵🇪];
 ```
@@ -149,15 +161,32 @@ graph TD;
 > *inyección de dependencias*. De esta manera la API puede exponerse por REST o
 > gRPC sin tocar el núcleo y se facilitan las pruebas unitarias.
 
-> 🔌 **Componentes intercambiables**  
+> 🔌 **Componentes intercambiables**
 > Cada módulo se comunica a través de interfaces, permitiendo reemplazar el
 > sistema de cache o el cliente HTTP según el entorno. Así es posible desplegar
 > la solución como microservicio o integrarla en una aplicación mayor.
+> 🚀 **Asincronía por defecto**
+> Todas las operaciones son `async` y algunas consultas se ejecutan en paralelo
+> para aprovechar al máximo los recursos de la aplicación.
+
+```markmap
+# Principios
+## Capas
+### API / gRPC
+### Dominio
+### Infraestructura
+## Patrones
+### DI
+### Repository
+### Adapter
+### Factory
+### Caching
+```
 
 #### Flujo de datos
 1. 📨 El cliente envía una petición REST o gRPC.
 2. 🛂 La API valida los parámetros y delega la consulta a `SunatScraper.Domain`.
-3. 🌐 El servicio central consulta el portal de SUNAT y guarda temporalmente la respuesta en la cache.
+3. 🌐 El servicio central consulta el portal de SUNAT (en paralelo cuando se reciben varios RUCs) y guarda temporalmente la respuesta en la cache.
 4. 📦 La API devuelve el resultado al cliente.
 
 #### Patrones de diseño
@@ -166,6 +195,7 @@ graph TD;
 - 📚 **Repository** mediante la interfaz `ISunatClient` que abstrae las consultas al portal y permite reutilizar la lógica en REST y gRPC.
 - 🔌 **Adapter**: `SunatClient` implementa dicha interfaz, pudiendo reemplazarse por mocks o variantes según el contexto.
 - ⚡ **Caching** en memoria o Redis para optimizar las consultas repetitivas.
+- ⚙️ **Asynchronous Pattern** con `async`/`await` y `Task.WhenAll` para consultas paralelas.
 
 ### Implementación de patrones en C# .NET
 
@@ -174,6 +204,10 @@ las dependencias necesarias (`HttpClient`, `MemoryCache` y opcionalmente
 `Redis`). Esta instancia se registra mediante inyección de dependencias en
 `Program.cs`, de modo que la API REST y el servicio gRPC obtengan un
 `ISunatClient` listo para usar.
+
+Las consultas de RUC se implementan de forma **asíncrona** y pueden ejecutarse
+en paralelo gracias al método `GetByRucsAsync`, que combina varias tareas con
+`Task.WhenAll` para obtener la información más rápido.
 
 `ISunatClient` funciona como **repositorio**: reúne todas las operaciones de
 consulta al padrón en una única interfaz, manteniendo la lógica de acceso remoto
@@ -240,16 +274,18 @@ solución de consulta de RUC que expone esta API.
 │   ├── Program.cs
 │   └── SunatScraper.Api.csproj
 ├── SunatScraper.Domain
-│   ├── Models
-│   ├── Validation
-│   └── SunatScraper.Domain.csproj
+│   ├── ISunatClient.cs
+│   ├── Models/
+│   └── Validation/
 ├── SunatScraper.Infrastructure
-│   ├── Services
+│   ├── Services/
+│   │   ├── Parsing/
+│   │   └── Security/
 │   └── SunatScraper.Infrastructure.csproj
 ├── SunatScraper.Grpc
-│   ├── Services
-│   ├── SunatScraper.Grpc.csproj
-│   └── SunatService.proto
+│   ├── Services/
+│   ├── SunatService.proto
+│   └── SunatScraper.Grpc.csproj
 ```
 
 ## ⚠️ Advertencia
