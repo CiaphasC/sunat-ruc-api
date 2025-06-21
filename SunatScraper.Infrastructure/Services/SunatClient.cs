@@ -3,7 +3,6 @@
 /// </summary>
 namespace SunatScraper.Infrastructure.Services;
 
-using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 using SunatScraper.Domain.Models;
 using SunatScraper.Domain.Validation;
@@ -19,14 +18,12 @@ public sealed class SunatClient : ISunatClient, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly CaptchaSolver _security;
-    private readonly IMemoryCache _memoryCache;
     private readonly IDatabase? _redisDatabase;
     private readonly CookieContainer _cookieJar;
 
-    private SunatClient(HttpClient httpClient, IMemoryCache memoryCache, IDatabase? redisDatabase, CookieContainer cookieJar)
+    private SunatClient(HttpClient httpClient, IDatabase? redisDatabase, CookieContainer cookieJar)
     {
         _httpClient = httpClient;
-        _memoryCache = memoryCache;
         _redisDatabase = redisDatabase;
         _cookieJar = cookieJar;
         _security = new CaptchaSolver(httpClient);
@@ -58,10 +55,9 @@ public sealed class SunatClient : ISunatClient, IDisposable
         httpClient.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
         httpClient.DefaultRequestHeaders.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
 
-        var memory = new MemoryCache(new MemoryCacheOptions { SizeLimit = 2048 });
         IDatabase? db = redisConnection is null ? null : ConnectionMultiplexer.Connect(redisConnection).GetDatabase();
 
-        return new SunatClient(httpClient, memory, db, cookieJar);
+        return new SunatClient(httpClient, db, cookieJar);
     }
     /// <summary>
     /// Obtiene la información correspondiente a un RUC.
@@ -92,7 +88,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
         if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
 
-        var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
+        var html = await GetHtmlAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
         var results = RucParser.ParseList(html, true).ToList();
         string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
@@ -118,8 +114,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
         if (!InputValidators.IsValidDocumento(tipo, numero))
             throw new ArgumentException("Doc inválido");
 
-        var html = await SendRawAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
-        return RucParser.ParseList(html, true).ToList();
+        var html = await GetHtmlAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
+        return (IReadOnlyList<SearchResultItem>)RucParser.ParseList(html, true).ToList();
     }
 
     /// <summary>
@@ -130,8 +126,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
         if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
 
-        var html = await SendRawAsync("consPorRazonSoc", ("razSoc", query));
-        return RucParser.ParseList(html).ToList();
+        var html = await GetHtmlAsync("consPorRazonSoc", ("razSoc", query));
+        return (IReadOnlyList<SearchResultItem>)RucParser.ParseList(html).ToList();
     }
 
     /// <summary>
@@ -142,7 +138,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
         if (!InputValidators.IsValidTexto(query))
             throw new ArgumentException("Texto inválido");
 
-        var html = await SendRawAsync("consPorRazonSoc", ("razSoc", query));
+        var html = await GetHtmlAsync("consPorRazonSoc", ("razSoc", query));
         var results = RucParser.ParseList(html).ToList();
         string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
@@ -158,16 +154,13 @@ public sealed class SunatClient : ISunatClient, IDisposable
     /// <summary>
     /// Envía la solicitud al portal de SUNAT y devuelve el HTML resultante.
     /// </summary>
-    private async Task<string> SendRawAsync(string accion, params (string k, string v)[] extras)
+    private async Task<string> GetHtmlAsync(string accion, params (string k, string v)[] extras)
     {
         var form = new Dictionary<string, string> { { "accion", accion } };
         foreach (var (k, v) in extras)
             form[k] = v;
 
         var key = JsonSerializer.Serialize(form);
-
-        if (_memoryCache.TryGetValue(key, out string? cachedHtml) && cachedHtml is not null)
-            return cachedHtml;
 
         if (_redisDatabase != null)
         {
@@ -207,8 +200,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
         res.EnsureSuccessStatusCode();
 
         var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
-        _memoryCache.Set(key, html, new MemoryCacheEntryOptions { Size = 1, SlidingExpiration = TimeSpan.FromHours(6) });
-        _redisDatabase?.StringSet(key, html, TimeSpan.FromHours(12));
+        if (_redisDatabase != null)
+            await _redisDatabase.StringSetAsync(key, html, TimeSpan.FromHours(12));
         return html;
     }
 
@@ -217,7 +210,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
     /// </summary>
     private async Task<RucInfo> SendAsync(string accion, params (string k, string v)[] extras)
     {
-        var html = await SendRawAsync(accion, extras);
+        var html = await GetHtmlAsync(accion, extras);
         var parsedInfo = RucParser.Parse(html, accion == "consPorTipdoc");
         return parsedInfo;
     }
@@ -228,7 +221,6 @@ public sealed class SunatClient : ISunatClient, IDisposable
     public void Dispose()
     {
         _httpClient.Dispose();
-        _memoryCache.Dispose();
         _security.Dispose();
     }
 }
