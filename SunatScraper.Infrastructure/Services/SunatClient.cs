@@ -70,6 +70,21 @@ public sealed class SunatClient : ISunatClient, IDisposable
         SendAsync("consPorRuc", ("nroRuc", ruc));
 
     /// <summary>
+    /// Obtiene los datos de varios RUCs en paralelo manteniendo el orden.
+    /// </summary>
+    public async Task<IReadOnlyList<RucInfo>> GetByRucsAsync(IEnumerable<string> rucs)
+    {
+        var tasks = rucs.Select(ruc =>
+        {
+            if (!InputValidators.IsValidRuc(ruc))
+                throw new ArgumentException("RUC inválido");
+            return GetByRucAsync(ruc);
+        }).ToArray();
+
+        return await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
     /// Realiza la búsqueda de contribuyente por tipo y número de documento.
     /// </summary>
     public async Task<RucInfo> GetByDocumentAsync(string tipo, string numero)

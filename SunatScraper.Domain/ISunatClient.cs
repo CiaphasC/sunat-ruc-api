@@ -10,6 +10,11 @@ public interface ISunatClient
     Task<RucInfo> GetByRucAsync(string ruc);
 
     /// <summary>
+    /// Obtiene la información de varios RUCs de forma concurrente.
+    /// </summary>
+    Task<IReadOnlyList<RucInfo>> GetByRucsAsync(IEnumerable<string> rucs);
+
+    /// <summary>
     /// Realiza la búsqueda por tipo y número de documento de identidad.
     /// </summary>
     Task<RucInfo> GetByDocumentAsync(string tipo, string numero);
