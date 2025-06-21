@@ -229,5 +229,6 @@ public sealed class SunatClient : ISunatClient, IDisposable
     {
         _httpClient.Dispose();
         _memoryCache.Dispose();
+        _security.Dispose();
     }
 }

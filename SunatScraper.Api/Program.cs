@@ -6,8 +6,13 @@ using Serilog;
 using SunatScraper.Domain;
 using SunatScraper.Infrastructure.Services;
 using System.Text.Json.Serialization;
+using System.Net;
+using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
+
+int port = GetAvailablePort(5000);
+builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(port));
 
 builder.Host.UseSerilog((ctx, lc) => lc.WriteTo.Console());
 
@@ -19,6 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull);
 
 var app = builder.Build();
+Console.WriteLine($"Listening on port {port}");
 
 // Endpoints HTTP
 app.MapGet("/", () => "SUNAT RUC API ok");
@@ -60,3 +66,27 @@ app.MapGet(
         ApiHelpers.Execute(async () => ApiHelpers.ToResult(await client.GetByNameAsync(razonSocial))));
 
 app.Run();
+
+static int GetAvailablePort(int start)
+{
+    for (int p = start; p < start + 20; p++)
+    {
+        try
+        {
+            var test = new TcpListener(IPAddress.Loopback, p);
+            test.Start();
+            test.Stop();
+            return p;
+        }
+        catch (SocketException)
+        {
+            // puerto en uso
+        }
+    }
+
+    var fallback = new TcpListener(IPAddress.Loopback, 0);
+    fallback.Start();
+    int port = ((IPEndPoint)fallback.LocalEndpoint).Port;
+    fallback.Stop();
+    return port;
+}
