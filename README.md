@@ -10,7 +10,7 @@ pensada para integrarse fácilmente en cualquier sistema.
 - 🔍 **Búsqueda completa** por número de RUC, documento o razón social.
 - 🤖 **Captcha automático** resuelto en segundo plano.
 - 🌐 **Endpoints HTTP** y servicio **gRPC** opcional.
-- 🛡️ **Cache** en memoria y soporte para **Redis**.
+- 🛡️ **Cache** opcional mediante **Redis**.
 - 💥 **Consulta múltiple** de RUCs en paralelo con `Task.WhenAll`.
 - 📄 **Documentación** y ejemplos listos para usar.
 
@@ -23,7 +23,8 @@ pensada para integrarse fácilmente en cualquier sistema.
 ```bash
 dotnet run --project SunatScraper.Api
 ```
-La API quedará disponible en `http://localhost:5000/`.
+La API quedará disponible en un puerto libre (por defecto 5000). Revisa la consola para conocer el número de puerto. También puedes establecerlo con la variable `PORT`.
+Los ejemplos siguientes asumen que el servicio está corriendo en dicho puerto.
 
 ## 📁 Endpoints principales
 
@@ -163,7 +164,7 @@ graph TD;
 
 > 🔌 **Componentes intercambiables**
 > Cada módulo se comunica a través de interfaces, permitiendo reemplazar el
-> sistema de cache o el cliente HTTP según el entorno. Así es posible desplegar
+> sistema de cache (Redis) o el cliente HTTP según el entorno. Así es posible desplegar
 > la solución como microservicio o integrarla en una aplicación mayor.
 > 🚀 **Asincronía por defecto**
 > Todas las operaciones son `async` y algunas consultas se ejecutan en paralelo
@@ -186,21 +187,21 @@ graph TD;
 #### Flujo de datos
 1. 📨 El cliente envía una petición REST o gRPC.
 2. 🛂 La API valida los parámetros y delega la consulta a `SunatScraper.Domain`.
-3. 🌐 El servicio central consulta el portal de SUNAT (en paralelo cuando se reciben varios RUCs) y guarda temporalmente la respuesta en la cache.
+3. 🌐 El servicio central consulta el portal de SUNAT (en paralelo cuando se reciben varios RUCs) y guarda temporalmente la respuesta en Redis.
 4. 📦 La API devuelve el resultado al cliente.
 
 #### Patrones de diseño
-- 🏭 **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y la caché.
+- 🏭 **Factory Method** en `SunatClient.Create` para configurar `HttpClient` y el soporte de Redis.
 - 🧩 **Dependency Injection** para registrar servicios y mantener bajo acoplamiento.
 - 📚 **Repository** mediante la interfaz `ISunatClient` que abstrae las consultas al portal y permite reutilizar la lógica en REST y gRPC.
 - 🔌 **Adapter**: `SunatClient` implementa dicha interfaz, pudiendo reemplazarse por mocks o variantes según el contexto.
-- ⚡ **Caching** en memoria o Redis para optimizar las consultas repetitivas.
+- ⚡ **Caching** mediante Redis para optimizar las consultas repetitivas.
 - ⚙️ **Asynchronous Pattern** con `async`/`await` y `Task.WhenAll` para consultas paralelas.
 
 ### Implementación de patrones en C# .NET
 
 El método `SunatClient.Create()` actúa como **fábrica** al construir y configurar
-las dependencias necesarias (`HttpClient`, `MemoryCache` y opcionalmente
+las dependencias necesarias (`HttpClient` y opcionalmente
 `Redis`). Esta instancia se registra mediante inyección de dependencias en
 `Program.cs`, de modo que la API REST y el servicio gRPC obtengan un
 `ISunatClient` listo para usar.
@@ -226,14 +227,12 @@ classDiagram
     class SunatClient
     class HttpClient
     class CaptchaSolver
-    class MemoryCache
     class RedisDatabase
 
     SunatService --> ISunatClient : depende
     SunatClient ..|> ISunatClient
     SunatClient --> HttpClient
     SunatClient --> CaptchaSolver
-    SunatClient --> MemoryCache
     SunatClient --> RedisDatabase : opcional
 ```
 

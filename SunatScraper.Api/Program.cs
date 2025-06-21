@@ -11,7 +11,8 @@ using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
-int port = GetAvailablePort(5000);
+int port = builder.Configuration.GetValue<int?>("PORT")
+    ?? GetAvailablePort(5000);
 builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(port));
 
 builder.Host.UseSerilog((ctx, lc) => lc.WriteTo.Console());
