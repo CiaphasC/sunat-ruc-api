@@ -9,13 +9,31 @@ using System.Security.Cryptography;
 using System.Text;
 using Tesseract;
 
-public class CaptchaSolver
+public class CaptchaSolver : IDisposable
 {
     private readonly HttpClient _httpClient;
+#if USE_TESSERACT
+    private readonly TesseractEngine? _engine;
+    private readonly object _ocrLock = new();
+#endif
+    private bool _disposed;
 
     public int LastRandom { get; private set; }
 
-    public CaptchaSolver(HttpClient httpClient) => _httpClient = httpClient;
+    public CaptchaSolver(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+#if USE_TESSERACT
+        try
+        {
+            _engine = new TesseractEngine("/usr/share/tessdata", "eng", EngineMode.Default);
+        }
+        catch
+        {
+            _engine = null;
+        }
+#endif
+    }
 
     /// <summary>
     /// Genera un token pseudoaleatorio utilizado por el portal de SUNAT.
@@ -69,25 +87,52 @@ public class CaptchaSolver
                 $"Captcha request failed: {(int)res.StatusCode} {res.ReasonPhrase}");
         }
 
-        var png = await res.Content.ReadAsByteArrayAsync();
 #if USE_TESSERACT
-        try
+        var png = await res.Content.ReadAsByteArrayAsync();
+        if (_engine != null)
         {
-            using var engine = new TesseractEngine("/usr/share/tessdata", "eng", EngineMode.Default);
-            using var pix = Pix.LoadFromMemory(png);
-            using var page = engine.Process(pix);
-            var text = page.GetText().Trim().Replace(" ", string.Empty).ToUpper();
-            if (text.Length == 4 && text.All(char.IsLetterOrDigit))
-                return text;
+            try
+            {
+                lock (_ocrLock)
+                {
+                    using var pix = Pix.LoadFromMemory(png);
+                    using var page = _engine.Process(pix);
+                    var ocrText = page.GetText().Trim().Replace(" ", string.Empty).ToUpper();
+                    if (ocrText.Length == 4 && ocrText.All(char.IsLetterOrDigit))
+                        return ocrText;
+                }
+            }
+            catch
+            {
+                // si falla el OCR se solicita el captcha manualmente
+            }
         }
-        catch
-        {
-            // si falla el OCR se solicita el captcha manualmente
-        }
+#else
+        var png = await res.Content.ReadAsByteArrayAsync();
 #endif
         var tmp = Path.GetTempFileName() + ".png";
         await File.WriteAllBytesAsync(tmp, png);
         Console.Write($"Captcha manual ({tmp}): ");
-        return Console.ReadLine()!.Trim().ToUpper();
+        var text = Console.ReadLine()!.Trim().ToUpper();
+        try
+        {
+            File.Delete(tmp);
+        }
+        catch
+        {
+            // ignore failures when cleaning up temp file
+        }
+        return text;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+#if USE_TESSERACT
+        _engine?.Dispose();
+#endif
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }
