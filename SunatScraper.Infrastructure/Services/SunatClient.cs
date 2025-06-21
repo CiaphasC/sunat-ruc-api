@@ -168,7 +168,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             if (j.HasValue) return j.ToString();
         }
 
-        var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        using var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
         if (initRes.IsSuccessStatusCode)
         {
             var body = await initRes.Content.ReadAsStringAsync();
