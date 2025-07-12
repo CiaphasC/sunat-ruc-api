@@ -7,8 +7,8 @@
     <DefineConstants>USE_TESSERACT</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.0.0" />
     <ProjectReference Include="../SunatScraper.Domain/SunatScraper.Domain.csproj" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.*" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="7.*" />
     <PackageReference Include="Tesseract" Version="4.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.*" />
