@@ -94,7 +94,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             throw new ArgumentException("Doc inválido");
 
         var html = await GetHtmlAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
-        var results = RucParser.ParseList(html, true).ToList();
+        var results = RucParser.ParseList(html, true);
         string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
         if (results.Count > 0 && !string.IsNullOrWhiteSpace(results[0].Ruc))
@@ -120,7 +120,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             throw new ArgumentException("Doc inválido");
 
         var html = await GetHtmlAsync("consPorTipdoc", ("tipdoc", tipo), ("nrodoc", numero));
-        return (IReadOnlyList<SearchResultItem>)RucParser.ParseList(html, true).ToList();
+        return RucParser.ParseList(html, true);
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             throw new ArgumentException("Texto inválido");
 
         var html = await GetHtmlAsync("consPorRazonSoc", ("razSoc", query));
-        return (IReadOnlyList<SearchResultItem>)RucParser.ParseList(html).ToList();
+        return RucParser.ParseList(html);
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             throw new ArgumentException("Texto inválido");
 
         var html = await GetHtmlAsync("consPorRazonSoc", ("razSoc", query));
-        var results = RucParser.ParseList(html).ToList();
+        var results = RucParser.ParseList(html);
         string? ubicacion = results.Count > 0 ? results[0].Ubicacion : null;
 
         if (results.Count > 0 && !string.IsNullOrWhiteSpace(results[0].Ruc))
