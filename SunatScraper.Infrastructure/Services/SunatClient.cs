@@ -254,7 +254,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
         };
         req.Headers.Referrer = new Uri(_httpClient.BaseAddress!, "cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
 
-        using var res = await _httpClient.SendAsync(req);
+        using var res = await _httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
         if (res.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             await ResetSessionAsync();
@@ -264,7 +264,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
                 Content = new FormUrlEncodedContent(form)
             };
             retry.Headers.Referrer = req.Headers.Referrer;
-            using var retryRes = await _httpClient.SendAsync(retry);
+            using var retryRes = await _httpClient.SendAsync(retry, HttpCompletionOption.ResponseHeadersRead);
             return await ReadHtmlAsync(retryRes);
         }
 
@@ -273,10 +273,17 @@ public sealed class SunatClient : ISunatClient, IDisposable
 
     private static async Task<string> ReadHtmlAsync(HttpResponseMessage res)
     {
-        res.EnsureSuccessStatusCode();
-        using var stream = await res.Content.ReadAsStreamAsync();
-        using var reader = new StreamReader(stream, Encoding.GetEncoding("ISO-8859-1"));
-        return await reader.ReadToEndAsync();
+        try
+        {
+            res.EnsureSuccessStatusCode();
+            using var stream = await res.Content.ReadAsStreamAsync();
+            using var reader = new StreamReader(stream, Encoding.GetEncoding("ISO-8859-1"));
+            return await reader.ReadToEndAsync();
+        }
+        finally
+        {
+            res.Dispose();
+        }
     }
 
     /// <summary>
