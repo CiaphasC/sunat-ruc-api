@@ -87,31 +87,39 @@ public class CaptchaSolver : IDisposable
                 $"Captcha request failed: {(int)res.StatusCode} {res.ReasonPhrase}");
         }
 
+        using var captchaStream = await res.Content.ReadAsStreamAsync();
+        var tmp = Path.GetTempFileName() + ".png";
 #if USE_TESSERACT
-        var png = await res.Content.ReadAsByteArrayAsync();
-        if (_engine != null)
+        await using (var ms = new MemoryStream())
         {
-            try
+            await captchaStream.CopyToAsync(ms);
+            var png = ms.ToArray();
+            if (_engine != null)
             {
-                lock (_ocrLock)
+                try
                 {
-                    using var pix = Pix.LoadFromMemory(png);
-                    using var page = _engine.Process(pix);
-                    var ocrText = page.GetText().Trim().Replace(" ", string.Empty).ToUpper();
-                    if (ocrText.Length == 4 && ocrText.All(char.IsLetterOrDigit))
-                        return ocrText;
+                    lock (_ocrLock)
+                    {
+                        using var pix = Pix.LoadFromMemory(png);
+                        using var page = _engine.Process(pix);
+                        var ocrText = page.GetText().Trim().Replace(" ", string.Empty).ToUpper();
+                        if (ocrText.Length == 4 && ocrText.All(char.IsLetterOrDigit))
+                            return ocrText;
+                    }
+                }
+                catch
+                {
+                    // si falla el OCR se solicita el captcha manualmente
                 }
             }
-            catch
-            {
-                // si falla el OCR se solicita el captcha manualmente
-            }
+            await File.WriteAllBytesAsync(tmp, png);
         }
 #else
-        var png = await res.Content.ReadAsByteArrayAsync();
+        await using (var fs = File.Create(tmp))
+        {
+            await captchaStream.CopyToAsync(fs);
+        }
 #endif
-        var tmp = Path.GetTempFileName() + ".png";
-        await File.WriteAllBytesAsync(tmp, png);
         Console.Write($"Captcha manual ({tmp}): ");
         var text = Console.ReadLine()!.Trim().ToUpper();
         try
