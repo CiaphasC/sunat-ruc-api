@@ -211,6 +211,12 @@ public sealed class SunatClient : ISunatClient, IDisposable
             ResetInitialization();
             return await GetHtmlInternalAsync(accion, retry + 1, extras);
         }
+        catch (HttpRequestException) when (retry < 3)
+        {
+            // reintento simple ante fallos de red o 503
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retry)));
+            return await GetHtmlInternalAsync(accion, retry + 1, extras);
+        }
     }
 
     /// <summary>
