@@ -264,8 +264,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
                 Content = new FormUrlEncodedContent(form)
             };
             retry.Headers.Referrer = req.Headers.Referrer;
-            res.Dispose();
-            return await ReadHtmlAsync(await _httpClient.SendAsync(retry));
+            using var retryRes = await _httpClient.SendAsync(retry);
+            return await ReadHtmlAsync(retryRes);
         }
 
         return await ReadHtmlAsync(res);
