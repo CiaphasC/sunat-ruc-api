@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using SunatScraper.Domain.Models;
+using System.Net;
 
 internal static class ApiHelpers
 {
@@ -29,9 +30,15 @@ internal static class ApiHelpers
             return Results.Json(new ApiError(ex.Message),
                 statusCode: StatusCodes.Status400BadRequest);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            return Results.Json(new ApiError("No se obtuvo respuesta del portal de SUNAT"),
+            string msg = ex.StatusCode switch
+            {
+                HttpStatusCode.ServiceUnavailable => "Portal de SUNAT no disponible (503)",
+                HttpStatusCode.GatewayTimeout => "Tiempo de espera agotado (504)",
+                _ => "No se obtuvo respuesta del portal de SUNAT"
+            };
+            return Results.Json(new ApiError(msg),
                 statusCode: StatusCodes.Status503ServiceUnavailable);
         }
     }
