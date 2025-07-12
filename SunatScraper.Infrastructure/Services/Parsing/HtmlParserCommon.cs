@@ -1,6 +1,8 @@
 namespace SunatScraper.Infrastructure.Services;
 
-using HtmlAgilityPack;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Html.Parser;
 using SunatScraper.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -16,29 +18,25 @@ using System.Threading.Tasks;
 /// </summary>
 internal static class HtmlParserCommon
 {
-    static Dictionary<string, string> BuildMap(HtmlDocument document)
+    static Dictionary<string, string> BuildMap(IHtmlDocument document)
     {
-        var labelValueMap = document.DocumentNode
-            .SelectNodes("//td[@class='bgn']")
-            ?.Select(labelCell =>
+        var labelValueMap = document.QuerySelectorAll("td.bgn")
+            .Select(labelCell =>
             {
-                var valueNode = labelCell.NextSibling;
-                while (valueNode is { Name: not "td" })
-                    valueNode = valueNode.NextSibling;
+                var valueNode = labelCell.NextElementSibling;
+                while (valueNode != null && !string.Equals(valueNode.NodeName, "TD", StringComparison.OrdinalIgnoreCase))
+                    valueNode = valueNode.NextElementSibling;
                 return new KeyValuePair<string, string>(
-                    labelCell.InnerText.Trim(),
-                    WebUtility.HtmlDecode(valueNode?.InnerText.Trim() ?? string.Empty));
+                    labelCell.TextContent.Trim(),
+                    WebUtility.HtmlDecode(valueNode?.TextContent.Trim() ?? string.Empty));
             })
-            .ToDictionary(k => k.Key, v => v.Value)
-            ?? new Dictionary<string, string>();
+            .ToDictionary(k => k.Key, v => v.Value);
 
         if (labelValueMap.Count == 0)
         {
-            foreach (var item in document.DocumentNode
-                        .SelectNodes("//div[contains(@class,'list-group-item')]")
-                        ?? Enumerable.Empty<HtmlNode>())
+            foreach (var item in document.QuerySelectorAll("div[class*=list-group-item]"))
             {
-                var itemText = WebUtility.HtmlDecode(item.InnerText.Trim());
+                var itemText = WebUtility.HtmlDecode(item.TextContent.Trim());
                 int colonIndex = itemText.IndexOf(':');
                 if (colonIndex > 0)
                     labelValueMap[itemText[..colonIndex].Trim()] = itemText[(colonIndex + 1)..].Trim();
@@ -75,11 +73,11 @@ internal static class HtmlParserCommon
 
     internal static RucInfo ParseRucInfo(string html)
     {
-        var document = new HtmlDocument();
-        document.LoadHtml(html);
+        var parser = new HtmlParser();
+        var document = parser.ParseDocument(html);
 
         var infoMap = BuildMap(document);
-        var plainText = WebUtility.HtmlDecode(document.DocumentNode.InnerText);
+        var plainText = WebUtility.HtmlDecode(document.DocumentElement.TextContent);
 
         string? rucNumber = null, razonSocial = null;
 
