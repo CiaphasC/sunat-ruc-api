@@ -10,6 +10,7 @@ using SunatScraper.Domain;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 /// <summary>
 /// Implementación de <see cref="ISunatClient"/> basada en <see cref="HttpClient"/>.
@@ -17,13 +18,17 @@ using System.Text.Json;
 public sealed class SunatClient : ISunatClient, IDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly HttpClientHandler _handler;
     private readonly CaptchaSolver _security;
     private readonly IDatabase? _redisDatabase;
-    private readonly CookieContainer _cookieJar;
+    private CookieContainer _cookieJar;
+    private readonly SemaphoreSlim _sessionLock = new(1, 1);
+    private bool _sessionInitialized;
 
-    private SunatClient(HttpClient httpClient, IDatabase? redisDatabase, CookieContainer cookieJar)
+    private SunatClient(HttpClient httpClient, HttpClientHandler handler, IDatabase? redisDatabase, CookieContainer cookieJar)
     {
         _httpClient = httpClient;
+        _handler = handler;
         _redisDatabase = redisDatabase;
         _cookieJar = cookieJar;
         _security = new CaptchaSolver(httpClient);
@@ -57,7 +62,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
 
         IDatabase? db = redisConnection is null ? null : ConnectionMultiplexer.Connect(redisConnection).GetDatabase();
 
-        return new SunatClient(httpClient, db, cookieJar);
+        return new SunatClient(httpClient, handler, db, cookieJar);
     }
     /// <summary>
     /// Obtiene la información correspondiente a un RUC.
@@ -168,21 +173,7 @@ public sealed class SunatClient : ISunatClient, IDisposable
             if (j.HasValue) return j.ToString();
         }
 
-        using var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
-        if (initRes.IsSuccessStatusCode)
-        {
-            var body = await initRes.Content.ReadAsStringAsync();
-            const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body, pat))
-            {
-                var cookie = m.Groups[1].Value.Split(';', 2)[0];
-                var p = cookie.IndexOf('=');
-                if (p > 0)
-                {
-                    _cookieJar.Add(new Uri(_httpClient.BaseAddress!, "/"), new Cookie(cookie[..p], cookie[(p + 1)..]));
-                }
-            }
-        }
+        await EnsureSessionAsync();
 
         form["token"] = _security.GenerateToken();
         form["codigo"] = await _security.SolveCaptchaAsync();
@@ -190,16 +181,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
         form["contexto"] = "ti-it";
         form["modo"] = "1";
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, "cl-ti-itmrconsruc/jcrS00Alias")
-        {
-            Content = new FormUrlEncodedContent(form)
-        };
-        req.Headers.Referrer = new Uri(_httpClient.BaseAddress!, "cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        string html = await PostFormAsync(form);
 
-        using var res = await _httpClient.SendAsync(req);
-        res.EnsureSuccessStatusCode();
-
-        var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
         if (_redisDatabase != null)
             await _redisDatabase.StringSetAsync(key, html, TimeSpan.FromHours(12));
         return html;
@@ -213,6 +196,86 @@ public sealed class SunatClient : ISunatClient, IDisposable
         var html = await GetHtmlAsync(accion, extras);
         var parsedInfo = RucParser.Parse(html, accion == "consPorTipdoc");
         return parsedInfo;
+    }
+
+    private async Task EnsureSessionAsync()
+    {
+        if (_sessionInitialized)
+            return;
+
+        await _sessionLock.WaitAsync();
+        try
+        {
+            if (_sessionInitialized)
+                return;
+
+            using var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+            if (initRes.IsSuccessStatusCode)
+            {
+                var body = await initRes.Content.ReadAsStringAsync();
+                const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
+                foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body, pat))
+                {
+                    var cookie = m.Groups[1].Value.Split(';', 2)[0];
+                    var p = cookie.IndexOf('=');
+                    if (p > 0)
+                        _cookieJar.Add(new Uri(_httpClient.BaseAddress!, "/"), new Cookie(cookie[..p], cookie[(p + 1)..]));
+                }
+            }
+
+            _sessionInitialized = true;
+        }
+        finally
+        {
+            _sessionLock.Release();
+        }
+    }
+
+    private async Task ResetSessionAsync()
+    {
+        await _sessionLock.WaitAsync();
+        try
+        {
+            _cookieJar = new CookieContainer();
+            _handler.CookieContainer = _cookieJar;
+            _sessionInitialized = false;
+        }
+        finally
+        {
+            _sessionLock.Release();
+        }
+    }
+
+    private async Task<string> PostFormAsync(Dictionary<string, string> form)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "cl-ti-itmrconsruc/jcrS00Alias")
+        {
+            Content = new FormUrlEncodedContent(form)
+        };
+        req.Headers.Referrer = new Uri(_httpClient.BaseAddress!, "cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+
+        using var res = await _httpClient.SendAsync(req);
+        if (res.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            await ResetSessionAsync();
+            await EnsureSessionAsync();
+            using var retry = new HttpRequestMessage(HttpMethod.Post, "cl-ti-itmrconsruc/jcrS00Alias")
+            {
+                Content = new FormUrlEncodedContent(form)
+            };
+            retry.Headers.Referrer = req.Headers.Referrer;
+            res.Dispose();
+            return await ReadHtmlAsync(await _httpClient.SendAsync(retry));
+        }
+
+        return await ReadHtmlAsync(res);
+    }
+
+    private static async Task<string> ReadHtmlAsync(HttpResponseMessage res)
+    {
+        res.EnsureSuccessStatusCode();
+        var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
+        return html;
     }
 
     /// <summary>
