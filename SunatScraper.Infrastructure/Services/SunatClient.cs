@@ -20,6 +20,8 @@ public sealed class SunatClient : ISunatClient, IDisposable
     private readonly CaptchaSolver _security;
     private readonly IDatabase? _redisDatabase;
     private readonly CookieContainer _cookieJar;
+    private bool _initialized;
+    private readonly object _initLock = new();
 
     private SunatClient(HttpClient httpClient, IDatabase? redisDatabase, CookieContainer cookieJar)
     {
@@ -154,7 +156,10 @@ public sealed class SunatClient : ISunatClient, IDisposable
     /// <summary>
     /// Envía la solicitud al portal de SUNAT y devuelve el HTML resultante.
     /// </summary>
-    private async Task<string> GetHtmlAsync(string accion, params (string k, string v)[] extras)
+    private Task<string> GetHtmlAsync(string accion, params (string k, string v)[] extras) =>
+        GetHtmlInternalAsync(accion, 0, extras);
+
+    private async Task<string> GetHtmlInternalAsync(string accion, int retry, params (string k, string v)[] extras)
     {
         var form = new Dictionary<string, string> { { "accion", accion } };
         foreach (var (k, v) in extras)
@@ -168,24 +173,19 @@ public sealed class SunatClient : ISunatClient, IDisposable
             if (j.HasValue) return j.ToString();
         }
 
-        using var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
-        if (initRes.IsSuccessStatusCode)
-        {
-            var body = await initRes.Content.ReadAsStringAsync();
-            const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body, pat))
-            {
-                var cookie = m.Groups[1].Value.Split(';', 2)[0];
-                var p = cookie.IndexOf('=');
-                if (p > 0)
-                {
-                    _cookieJar.Add(new Uri(_httpClient.BaseAddress!, "/"), new Cookie(cookie[..p], cookie[(p + 1)..]));
-                }
-            }
-        }
+        await EnsureInitializedAsync();
 
         form["token"] = _security.GenerateToken();
-        form["codigo"] = await _security.SolveCaptchaAsync();
+        try
+        {
+            form["codigo"] = await _security.SolveCaptchaAsync();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized && retry == 0)
+        {
+            ResetInitialization();
+            return await GetHtmlInternalAsync(accion, retry + 1, extras);
+        }
+
         form["numRnd"] = _security.LastRandom.ToString();
         form["contexto"] = "ti-it";
         form["modo"] = "1";
@@ -196,13 +196,21 @@ public sealed class SunatClient : ISunatClient, IDisposable
         };
         req.Headers.Referrer = new Uri(_httpClient.BaseAddress!, "cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
 
-        using var res = await _httpClient.SendAsync(req);
-        res.EnsureSuccessStatusCode();
+        try
+        {
+            using var res = await _httpClient.SendAsync(req);
+            res.EnsureSuccessStatusCode();
 
-        var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
-        if (_redisDatabase != null)
-            await _redisDatabase.StringSetAsync(key, html, TimeSpan.FromHours(12));
-        return html;
+            var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
+            if (_redisDatabase != null)
+                await _redisDatabase.StringSetAsync(key, html, TimeSpan.FromHours(12));
+            return html;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized && retry == 0)
+        {
+            ResetInitialization();
+            return await GetHtmlInternalAsync(accion, retry + 1, extras);
+        }
     }
 
     /// <summary>
@@ -213,6 +221,74 @@ public sealed class SunatClient : ISunatClient, IDisposable
         var html = await GetHtmlAsync(accion, extras);
         var parsedInfo = RucParser.Parse(html, accion == "consPorTipdoc");
         return parsedInfo;
+    }
+
+    /// <summary>
+    /// Asegura que la sesión inicial está configurada y las cookies se han cargado.
+    /// </summary>
+    private async Task EnsureInitializedAsync()
+    {
+        if (_initialized)
+            return;
+
+        bool doInit = false;
+        lock (_initLock)
+        {
+            if (!_initialized)
+            {
+                _initialized = true;
+                doInit = true;
+            }
+        }
+
+        if (doInit)
+        {
+            try
+            {
+                await InitializeSessionAsync();
+            }
+            catch
+            {
+                lock (_initLock)
+                {
+                    _initialized = false;
+                }
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Restaura el estado de inicialización para que la próxima solicitud vuelva a cargar las cookies.
+    /// </summary>
+    private void ResetInitialization()
+    {
+        lock (_initLock)
+        {
+            _initialized = false;
+        }
+    }
+
+    /// <summary>
+    /// Realiza la petición inicial al portal para obtener las cookies de sesión.
+    /// </summary>
+    private async Task InitializeSessionAsync()
+    {
+        using var initRes = await _httpClient.GetAsync("cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp");
+        if (!initRes.IsSuccessStatusCode)
+            return;
+
+        var body = await initRes.Content.ReadAsStringAsync();
+        const string pat = @"document\.cookie\s*=\s*""([^""]+)""";
+        foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(body, pat))
+        {
+            var cookie = m.Groups[1].Value.Split(';', 2)[0];
+            var p = cookie.IndexOf('=');
+            if (p > 0)
+            {
+                _cookieJar.Add(new Uri(_httpClient.BaseAddress!, "/"), new Cookie(cookie[..p], cookie[(p + 1)..]));
+            }
+        }
     }
 
     /// <summary>
