@@ -24,7 +24,7 @@ public static class RucParser
     /// <summary>
     /// Obtiene la lista de resultados encontrados en el HTML.
     /// </summary>
-    public static IEnumerable<SearchResultItem> ParseList(string html, bool porDocumento = false)
+    public static IReadOnlyList<SearchResultItem> ParseList(string html, bool porDocumento = false)
     {
         return porDocumento ? DocumentHtmlParser.ParseList(html) : RucHtmlParser.ParseList(html);
     }

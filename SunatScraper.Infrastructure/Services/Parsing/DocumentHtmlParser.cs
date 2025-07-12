@@ -19,7 +19,7 @@ internal static class DocumentHtmlParser
         return HtmlParserCommon.ParseRucInfoAsync(html);
     }
 
-    internal static IEnumerable<SearchResultItem> ParseList(string html)
+    internal static IReadOnlyList<SearchResultItem> ParseList(string html)
     {
         return RucHtmlParser.ParseList(html);
     }

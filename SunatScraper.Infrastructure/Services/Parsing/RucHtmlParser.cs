@@ -26,7 +26,7 @@ internal static class RucHtmlParser
     /// <summary>
     /// Obtiene una colección de coincidencias desde la página de resultados de búsqueda.
     /// </summary>
-    internal static IEnumerable<SearchResultItem> ParseList(string html)
+    internal static IReadOnlyList<SearchResultItem> ParseList(string html)
     {
         return SearchListHtmlParser.ParseList(html);
     }

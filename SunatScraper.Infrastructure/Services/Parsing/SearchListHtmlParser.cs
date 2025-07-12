@@ -12,12 +12,12 @@ using System.Text.RegularExpressions;
 /// </summary>
 internal static class SearchListHtmlParser
 {
-    internal static IEnumerable<SearchResultItem> ParseList(string html)
+    internal static IReadOnlyList<SearchResultItem> ParseList(string html)
     {
         var document = new HtmlDocument();
         document.LoadHtml(html);
 
-        return document.DocumentNode
+        var items = document.DocumentNode
             .SelectNodes("//a[contains(@class,'aRucs')]")
             ?.Select(anchor =>
             {
@@ -55,9 +55,12 @@ internal static class SearchListHtmlParser
 
                 return new SearchResultItem(rucNumber, razonSocial, ubicacion, estado);
             })
-            ?? Enumerable.Empty<SearchResultItem>();
+            ?.ToList()
+            ?? new List<SearchResultItem>();
+
+        return items;
     }
 
     internal static Task<IReadOnlyList<SearchResultItem>> ParseListAsync(string html) =>
-        Task.Run(() => (IReadOnlyList<SearchResultItem>)ParseList(html).ToList());
+        Task.Run(() => ParseList(html));
 }
