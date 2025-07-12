@@ -295,9 +295,9 @@ El portal de SUNAT puede cambiar o tener restricciones de acceso. Este código s
 Si al realizar una consulta la API muestra `Captcha request failed: 401 Unauthorized`, revisa lo siguiente:
 
 1. Usa la última versión del proyecto. La clase `CaptchaSolver` simula un navegador real estableciendo `User-Agent`, `Referer`, `Accept` y `Accept-Language`. También incluye el valor aleatorio `nmagic`/`numRnd` que SUNAT valida para permitir la descarga.
-2. Previamente se debe cargar la página `FrameCriterioBusquedaWeb.jsp` para obtener las cookies de sesión. El método `SunatClient.SendRawAsync` ya realiza esta petición antes de solicitar el captcha.
+2. Previamente se debe cargar la página `FrameCriterioBusquedaWeb.jsp` para obtener las cookies de sesión. Desde esta versión `SunatClient` realiza esa solicitud una sola vez al inicializarse y reutiliza la misma sesión para las demás consultas. Si la cookie expira, al recibir un `401` al descargar el captcha se reiniciará automáticamente la sesión.
 3. Verifica que tu conexión permita acceder a `e-consultaruc.sunat.gob.pe`; un cortafuego o proxy podría bloquear la descarga del captcha o descartar las cookies.
 4. Asegúrate de tener instalado Tesseract OCR para que el captcha se resuelva automáticamente. Si Tesseract no está disponible se solicitará ingresarlo manualmente.
-5. A partir de la versión actual la clase `CaptchaSolver` detecta los códigos `401 Unauthorized` y `404 Not Found` devolviendo un captcha vacío cuando SUNAT lo omite, evitando que se genere una excepción.
+5. La clase `CaptchaSolver` omite el código `404 Not Found` devolviendo un captcha vacío cuando SUNAT lo ignora. Un `401 Unauthorized` provoca que `SunatClient` reinicie la sesión y repita la consulta.
 
 Tras comprobar estos puntos la API debería responder correctamente a las consultas `/ruc/{ruc}`.

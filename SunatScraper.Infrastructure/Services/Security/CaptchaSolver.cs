@@ -75,17 +75,14 @@ public class CaptchaSolver : IDisposable
         req.Headers.AcceptLanguage.ParseAdd("es-PE,es;q=0.9");
 
         using var res = await _httpClient.SendAsync(req);
-        if (res.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.NotFound)
+
+        if (res.StatusCode is HttpStatusCode.NotFound)
         {
             Console.WriteLine($"[WARN] Captcha skipped: {(int)res.StatusCode} {res.ReasonPhrase}");
             return string.Empty;
         }
 
-        if (!res.IsSuccessStatusCode)
-        {
-            throw new InvalidOperationException(
-                $"Captcha request failed: {(int)res.StatusCode} {res.ReasonPhrase}");
-        }
+        res.EnsureSuccessStatusCode();
 
 #if USE_TESSERACT
         var png = await res.Content.ReadAsByteArrayAsync();
