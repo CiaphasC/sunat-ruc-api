@@ -274,8 +274,9 @@ public sealed class SunatClient : ISunatClient, IDisposable
     private static async Task<string> ReadHtmlAsync(HttpResponseMessage res)
     {
         res.EnsureSuccessStatusCode();
-        var html = Encoding.GetEncoding("ISO-8859-1").GetString(await res.Content.ReadAsByteArrayAsync());
-        return html;
+        using var stream = await res.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream, Encoding.GetEncoding("ISO-8859-1"));
+        return await reader.ReadToEndAsync();
     }
 
     /// <summary>
