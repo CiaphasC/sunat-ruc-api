@@ -15,7 +15,7 @@ pensada para integrarse fácilmente en cualquier sistema.
 - 📄 **Documentación** y ejemplos listos para usar.
 
 ## 🛠️ Requisitos
-- .NET SDK 9.0 o superior
+ - .NET SDK 9.0 o superior
 - Acceso a internet para restaurar paquetes
 - Tesseract OCR instalado
 
