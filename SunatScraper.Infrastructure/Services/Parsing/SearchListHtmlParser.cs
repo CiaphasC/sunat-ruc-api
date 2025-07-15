@@ -16,7 +16,7 @@ internal static class SearchListHtmlParser
     internal static IReadOnlyList<SearchResultItem> ParseList(string html)
     {
         var parser = new HtmlParser();
-        var document = parser.ParseDocument(html);
+        using var document = parser.ParseDocument(html);
 
         var items = document.QuerySelectorAll("a[class*=aRucs]")
             .Select(anchor =>
