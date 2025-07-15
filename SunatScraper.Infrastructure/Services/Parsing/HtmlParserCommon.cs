@@ -74,7 +74,7 @@ internal static class HtmlParserCommon
     internal static RucInfo ParseRucInfo(string html)
     {
         var parser = new HtmlParser();
-        var document = parser.ParseDocument(html);
+        using var document = parser.ParseDocument(html);
 
         var infoMap = BuildMap(document);
         var plainText = WebUtility.HtmlDecode(document.DocumentElement.TextContent);
